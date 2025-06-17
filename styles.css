@@ -1,0 +1,13 @@
+body {
+    background-color: #282828;
+}
+.sidebar {
+  position: fixed; /* Фиксированное положение */
+  top: 0;
+  left: 0;
+  bottom: 0; /* Растягиваем на всю высоту */
+  width: 250px; /* Ширина панели */
+  background: #212121; /* Цвет фона */
+  color: white;
+  padding: 20px;
+}
