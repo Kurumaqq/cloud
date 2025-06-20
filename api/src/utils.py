@@ -1,8 +1,8 @@
-from src.config import Config
-from src.errors.combined import InvalidPathHttpError, PathTraversalHttpError
-from pathlib import Path
+from src.errors.combined import InvalidPathHttpError, PathTraversalHttpError, InvalidToken
 from src.errors.files import FileNotFoundHttpError, NotFileHttpError
 from src.errors.dirs import DirNotFoundHttpError, NotDirHttpError
+from src.config import Config
+from pathlib import Path
 
 config = Config()
 
@@ -35,5 +35,11 @@ def check_dir(path: Path) -> bool:
         raise DirNotFoundHttpError(path)   
     if not path.is_dir():
         raise NotDirHttpError(path)
+
+    return True
+
+def check_token(token):
+    token = f'Bearer {token}'
+    if config.token != token: raise InvalidToken(token)
 
     return True

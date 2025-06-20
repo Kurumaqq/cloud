@@ -1,5 +1,5 @@
-from pydantic import BaseModel
 from typing import List, Optional, Literal
+from pydantic import BaseModel
 
 class ListDirsResponse(BaseModel):
     status: Literal['ok', 'error'] 
@@ -12,10 +12,11 @@ class CreateDirResponse(BaseModel):
 
 class DeleteDirResponse(BaseModel):
     status: Literal['ok', 'error']
-    message: str
+    dir: Optional[str]
+    message: Optional[str]
 
 class RenameDirResponse(BaseModel):
     status: Literal['ok', 'error']
-    old_name: str
-    new_name: str
-    message: str
+    old_name: Optional[str]
+    new_name: Optional[str]
+    message: Optional[str]

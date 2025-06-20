@@ -17,3 +17,8 @@ class Config():
     def base_dir(self):
         with open(self.path, 'r') as f:
             return json.load(f)['base_dir']
+
+    @property
+    def token(self):
+        with open(self.path, 'r') as f:
+            return f'Bearer {json.load(f)['token']}'

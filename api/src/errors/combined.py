@@ -12,3 +12,9 @@ class PathTraversalHttpError(HTTPException):
             status_code=403, 
             detail=f'Path traversal detected: {path}'
             )
+class InvalidToken(HTTPException):
+    def __init__(self, token=''):
+        super().__init__(
+            status_code=401, 
+            detail=f'Invalid token {token}'
+            )

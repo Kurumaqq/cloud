@@ -1,17 +1,19 @@
+from src.utils import check_path, check_file, check_paths, check_token
 from fastapi.responses import FileResponse
-from fastapi import UploadFile
-from src.errors.files import *
-from pathlib import Path
-from src.config import Config
-from src.schemas.files import *
-from src.utils import check_path, check_file, check_paths
 from src.errors.dirs import NotDirHttpError
+from fastapi import UploadFile, Request
+from src.schemas.files import *
+from src.errors.files import *
+from src.config import Config
+from pathlib import Path
 
 config = Config()
 
-async def list_files(path):
+async def list_files(path: str, request: Request):
     try:
+        token = request.headers['Authorization']
         full_path = (Path(config.base_dir) / path).resolve()
+        check_token(token)
         check_path(path)
 
         if not full_path.is_dir():
@@ -35,16 +37,18 @@ async def list_files(path):
         )
    
 
-async def download_file(path: str):
+async def download_file(path: str, request: Request):
     try:
+        token = request.headers['Authorization']
         full_path = (Path(config.base_dir) / path).resolve()
+        check_token(token)
         check_path(path)   
         check_file(full_path)
 
         return FileResponse(
             path=str(full_path),
             media_type='application/octet-stream',
-            filename=path.split('/')[-1] 
+            filename=full_path.name
         )
     except Exception as e:
         return DownloadFileErrorResponse(
@@ -52,34 +56,38 @@ async def download_file(path: str):
             message=str(e)
         )
 
-async def delete_files(paths: list[str]): 
+async def delete_files(paths: list[str], request: Request): 
     try: 
+        full_path = [(Path(config.base_dir) / path).resolve() for path in paths]
+        token = request.headers['Authorization']
+        
+        check_token(token)
         check_paths(paths)
 
-        full_path = [
-            (Path(config.base_dir) / path).resolve() 
-            for path in paths
-        ]
-        
         for path in full_path:
             check_file(path)
             path.unlink()
 
         return DeleteFilesResponse(
             status='ok',
+            files=paths,
             message=f'Files {paths} deleted successfully.'
         )
     except Exception as e:
         return DeleteFilesResponse(
             status='error',
+            files=paths,
             message=str(e)
         )
 
 
-async def upload_file(file: UploadFile, path: str):
+async def upload_file(file: UploadFile, path: str, request: Request):
     try: 
         filename = file.filename
         full_path = (Path(config.base_dir) / path / filename).resolve()
+        token = request.headers['Authorization']
+
+        check_token(token)
         check_paths([path, filename])
 
         with open(str(full_path), 'wb') as f:
@@ -90,18 +98,23 @@ async def upload_file(file: UploadFile, path: str):
 
         return UploadFileResponse(
             status='ok',
+            filename=filename,
             message=f'File {filename} uploaded successfully to {path}.'
         )
 
     except Exception as e: 
         return UploadFileResponse(
             status='error',
+            filename=filename,
             message=str(e)
         )   
-async def read_file(path: str):
+async def read_file(path: str, request: Request):
     try:
         data = ''
         full_path = (Path(config.base_dir) / path).resolve()
+        token = request.headers['Authorization']
+
+        check_token(token)
         check_path(path)
         check_file(full_path)
 
@@ -118,14 +131,17 @@ async def read_file(path: str):
             message=str(e)
         )
 
-async def rename_file(path: str, new_name: str):
+async def rename_file(path: str, new_name: str, request: Request):
     try:
-        old_name = path.split('/')[-1]
-        old_ext = old_name.split('.')[-1]
-        if new_name.count('.') == 0: new_name += f'.{old_ext}'
+        old_name = Path(path).name
+        old_ext = Path(old_name).suffix
+        if new_name.count('.') == 0: new_name += old_ext
         
         full_path = (Path(config.base_dir) / path).resolve()
         new_path = (Path(config.base_dir) / new_name).resolve()
+        token = request.headers['Authorization']
+
+        check_token(token)
         check_paths([path, new_name])
         check_file(full_path)
 

@@ -1,5 +1,5 @@
-from pydantic import BaseModel
 from typing import Optional, Literal, List
+from pydantic import BaseModel
     
 class DownloadFileErrorResponse(BaseModel):
     status: Literal['error']
@@ -12,10 +12,12 @@ class ListFilesResponse(BaseModel):
 
 class DeleteFilesResponse(BaseModel):
     status: Literal['ok', 'error']
+    files: Optional[str]
     message: Optional[str] = None
 
 class UploadFileResponse(BaseModel):
     status: Literal['ok', 'error']
+    filename: Optional[str]
     message: Optional[str] = None
 
 class ReadFileResponse(BaseModel):

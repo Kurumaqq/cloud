@@ -1,5 +1,5 @@
-from pydantic import BaseModel
 from typing import List, Optional, Literal
+from pydantic import BaseModel
 
 class ListCombinedResponse(BaseModel):
     status: Literal['ok', 'error']

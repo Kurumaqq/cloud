@@ -1,6 +1,6 @@
+from src.schemas.сombined import *
 from fastapi import APIRouter
 from src import services 
-from src.schemas.сombined import *
 
 router = APIRouter(prefix='/combined', tags=['Combined'])
 

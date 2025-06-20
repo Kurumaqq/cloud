@@ -1,19 +1,20 @@
-from pathlib import Path
-from src.config import Config
+from src.utils import check_path, check_dir, check_token
 from src.errors.combined import *
-from src.errors.dirs import DirNotFoundHttpError
-from src.utils import check_path
+from src.config import Config
+from fastapi import Request
 from src.schemas import *
+from pathlib import Path
 
 config = Config()
 
-async def combined_list(path: str):
+async def combined_list(path: str, request: Request):
     try:
         full_path = (Path(config.base_dir) / path).resolve()
-        check_path(path)
+        token = request.headers['Authorization']
 
-        if not full_path.exists() or not full_path.is_dir():
-            raise DirNotFoundHttpError(path)
+        check_token(token)
+        check_path(path)
+        check_dir(full_path)
 
         dirs = []
         files = []

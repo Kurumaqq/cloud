@@ -1,15 +1,18 @@
+from src.utils import check_path, check_dir, check_paths, check_token
 from src.schemas.dirs import *
 from src.errors.dirs import * 
-from pathlib import Path
 from src.config import Config
+from pathlib import Path
 import shutil
-from src.utils import check_path, check_dir, check_paths
+from fastapi import Request
 
 config = Config()
 
-async def list_dirs(path: str):
+async def list_dirs(path: str, request: Request):
     try:
+        token = request.headers['Authorization']
         full_path = (Path(config.base_dir) / path).resolve()
+        check_token(token)
         check_path(path)
         check_dir(full_path)
 
@@ -29,9 +32,11 @@ async def list_dirs(path: str):
             message=str(e)
         )
 
-async def create_dir(path: str): 
+async def create_dir(path: str, request: Request): 
     try:
+        token = request.headers['Authorization']
         full_path = (Path(config.base_dir) / path).resolve()
+        check_token(token)
         check_path(path)
         check_dir(full_path)
 
@@ -47,30 +52,37 @@ async def create_dir(path: str):
             message=str(e)
         )
 
-async def delete_dir(path: str):
+async def delete_dir(path: str, request: Request):
     try:
+        token = request.headers['Authorization']
         full_path = (Path(config.base_dir) / path).resolve()
+        check_token(token)
         check_path(path)
         check_dir(full_path)
 
         shutil.rmtree(full_path)
         return DeleteDirResponse(
             status='ok',
+            dir=path,
             message=f'Directory {path} deleted successfully.'
         )
 
     except Exception as e:
         return DeleteDirResponse(
             status='error',
+            dir=path,
             message=str(e)
         )
 
-async def rename_dir(path: str, new_name: str):
+async def rename_dir(path: str, new_name: str, request: Request):
     try:
+        token = request.headers['Authorization']
         old_name = Path(path).name
         full_path = (Path(config.base_dir) / path).resolve()
         parent_path = Path(path).parent
         new_path = (Path(config.base_dir) / parent_path / new_name).resolve()
+        
+        check_token(token)
         check_paths([path, new_name])
         check_dir(full_path)
 

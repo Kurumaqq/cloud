@@ -1,5 +1,6 @@
 {
     "host": "0.0.0.0",
     "port": 8000,
-    "base_dir": ""
+    "base_dir": "",
+    "token": "acbbde0c5234e2ef95e1dd8ded8c9b18063ca8794c7e7ce0e33798659c419639f13ef6033f93fe5cce4785a8880fe14655832c2a537804442a4e00592c2d07d15231ba971bb8ff4aae2acfb412e359fe682d120449d2dc0f6e9b31d2d19e3c8db7089493c013c0888b25198e44cf2e5858fcedb4dfa3940fc1e71b3b16"
 }
