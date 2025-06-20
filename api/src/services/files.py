@@ -9,7 +9,7 @@ from pathlib import Path
 
 config = Config()
 
-async def list_files(path: str, request: Request):
+async def list_files(path: str, request: Request) -> ListFilesResponse:
     try:
         token = request.headers['Authorization']
         full_path = (Path(config.base_dir) / path).resolve()
@@ -37,7 +37,7 @@ async def list_files(path: str, request: Request):
         )
    
 
-async def download_file(path: str, request: Request):
+async def download_file(path: str, request: Request) -> FileResponse | DownloadFileErrorResponse:
     try:
         token = request.headers['Authorization']
         full_path = (Path(config.base_dir) / path).resolve()
@@ -56,7 +56,7 @@ async def download_file(path: str, request: Request):
             message=str(e)
         )
 
-async def delete_files(paths: list[str], request: Request): 
+async def delete_files(paths: list[str], request: Request) -> DeleteFilesResponse: 
     try: 
         full_path = [(Path(config.base_dir) / path).resolve() for path in paths]
         token = request.headers['Authorization']
@@ -81,7 +81,7 @@ async def delete_files(paths: list[str], request: Request):
         )
 
 
-async def upload_file(file: UploadFile, path: str, request: Request):
+async def upload_file(file: UploadFile, path: str, request: Request) -> UploadFileResponse:
     try: 
         filename = file.filename
         full_path = (Path(config.base_dir) / path / filename).resolve()
@@ -108,7 +108,7 @@ async def upload_file(file: UploadFile, path: str, request: Request):
             filename=filename,
             message=str(e)
         )   
-async def read_file(path: str, request: Request):
+async def read_file(path: str, request: Request) -> ReadFileResponse:
     try:
         data = ''
         full_path = (Path(config.base_dir) / path).resolve()
@@ -131,7 +131,7 @@ async def read_file(path: str, request: Request):
             message=str(e)
         )
 
-async def rename_file(path: str, new_name: str, request: Request):
+async def rename_file(path: str, new_name: str, request: Request) -> RenameFileResponse:
     try:
         old_name = Path(path).name
         old_ext = Path(old_name).suffix

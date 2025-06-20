@@ -8,7 +8,7 @@ from fastapi import Request
 
 config = Config()
 
-async def list_dirs(path: str, request: Request):
+async def list_dirs(path: str, request: Request) -> ListDirsResponse:
     try:
         token = request.headers['Authorization']
         full_path = (Path(config.base_dir) / path).resolve()
@@ -32,7 +32,7 @@ async def list_dirs(path: str, request: Request):
             message=str(e)
         )
 
-async def create_dir(path: str, request: Request): 
+async def create_dir(path: str, request: Request) -> CreateDirResponse: 
     try:
         token = request.headers['Authorization']
         full_path = (Path(config.base_dir) / path).resolve()
@@ -52,7 +52,7 @@ async def create_dir(path: str, request: Request):
             message=str(e)
         )
 
-async def delete_dir(path: str, request: Request):
+async def delete_dir(path: str, request: Request) -> DeleteDirResponse:
     try:
         token = request.headers['Authorization']
         full_path = (Path(config.base_dir) / path).resolve()
@@ -74,7 +74,7 @@ async def delete_dir(path: str, request: Request):
             message=str(e)
         )
 
-async def rename_dir(path: str, new_name: str, request: Request):
+async def rename_dir(path: str, new_name: str, request: Request) -> RenameDirResponse:
     try:
         token = request.headers['Authorization']
         old_name = Path(path).name
