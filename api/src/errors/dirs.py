@@ -1,6 +1,6 @@
 from fastapi.exceptions import HTTPException
 
-class DirsNotFoundHttpError(HTTPException):
+class DirNotFoundHttpError(HTTPException):
     def __init__(self, path=''):
         super().__init__(
             status_code=404, 

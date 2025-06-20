@@ -1,7 +1,7 @@
 from pathlib import Path
 from src.config import Config
 from src.errors.combined import *
-from src.errors.dirs import DirsNotFoundHttpError
+from src.errors.dirs import DirNotFoundHttpError
 from src.utils import check_path
 from src.schemas import *
 
@@ -13,7 +13,7 @@ async def combined_list(path: str):
         check_path(path)
 
         if not full_path.exists() or not full_path.is_dir():
-            raise DirsNotFoundHttpError(path)
+            raise DirNotFoundHttpError(path)
 
         dirs = []
         files = []

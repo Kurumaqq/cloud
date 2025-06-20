@@ -25,3 +25,7 @@ async def delete_files(paths: list[str]):
 @router.get('/read/{path:path}', response_model=ReadFileResponse)
 async def read_file(path: str):
     return await services.read_file(path)
+
+@router.post('/rename')
+async def rename_file(path: str, new_name: str):
+    return await services.rename_file(path, new_name)

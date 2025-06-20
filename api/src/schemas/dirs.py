@@ -13,3 +13,9 @@ class CreateDirResponse(BaseModel):
 class DeleteDirResponse(BaseModel):
     status: Literal['ok', 'error']
     message: str
+
+class RenameDirResponse(BaseModel):
+    status: Literal['ok', 'error']
+    old_name: str
+    new_name: str
+    message: str

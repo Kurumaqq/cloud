@@ -22,3 +22,9 @@ class ReadFileResponse(BaseModel):
     status: Literal['ok', 'error']
     content: Optional[str] = None
     message: Optional[str] = None
+
+class RenameFileResponse(BaseModel):
+    status: Literal['ok', 'error']
+    old_name: Optional[str] = None
+    new_name: Optional[str] = None
+    message: Optional[str] = None

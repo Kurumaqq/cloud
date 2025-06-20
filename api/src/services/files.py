@@ -4,7 +4,7 @@ from src.errors.files import *
 from pathlib import Path
 from src.config import Config
 from src.schemas.files import *
-from src.utils import check_path
+from src.utils import check_path, check_file, check_paths
 from src.errors.dirs import NotDirHttpError
 
 config = Config()
@@ -14,8 +14,8 @@ async def list_files(path):
         full_path = (Path(config.base_dir) / path).resolve()
         check_path(path)
 
-        if not full_path.exists() or not full_path.is_dir():
-            raise FileNotFoundError(f'Directory {path} does not exist.')
+        if not full_path.is_dir():
+            raise NotDirHttpError(path)
 
         files = [
             str(f.as_posix()) 
@@ -39,9 +39,7 @@ async def download_file(path: str):
     try:
         full_path = (Path(config.base_dir) / path).resolve()
         check_path(path)   
-
-        if not full_path.exists() or not full_path.is_file():
-            raise FileNotFoundError(f'File {path} does not exist.')
+        check_file(full_path)
 
         return FileResponse(
             path=str(full_path),
@@ -56,16 +54,15 @@ async def download_file(path: str):
 
 async def delete_files(paths: list[str]): 
     try: 
-        for path in paths:
-            check_path(path)
-        full_paths_resolved = [
+        check_paths(paths)
+
+        full_path = [
             (Path(config.base_dir) / path).resolve() 
             for path in paths
         ]
         
-        for path in full_paths_resolved:
-            if not path.exists(): raise FileNotFoundHttpError(path)
-            if not path.is_file(): raise NotFileHttpError(path)
+        for path in full_path:
+            check_file(path)
             path.unlink()
 
         return DeleteFilesResponse(
@@ -83,13 +80,7 @@ async def upload_file(file: UploadFile, path: str):
     try: 
         filename = file.filename
         full_path = (Path(config.base_dir) / path / filename).resolve()
-        check_path(path)
-        check_path(filename)
-
-        if full_path.exists():
-            raise FileExistsHttpError(path)
-        if full_path.is_dir():
-            raise NotDirHttpError(path)
+        check_paths([path, filename])
 
         with open(str(full_path), 'wb') as f:
             while content := await file.read(30 * 1024 * 1024):  
@@ -112,10 +103,7 @@ async def read_file(path: str):
         data = ''
         full_path = (Path(config.base_dir) / path).resolve()
         check_path(path)
-        if not full_path.exists():
-            raise FileNotFoundHttpError(path)
-        if not full_path.is_file():
-            raise NotFileHttpError(path)
+        check_file(full_path)
 
         with open(full_path, 'r') as f: data = f.read()
 
@@ -127,5 +115,32 @@ async def read_file(path: str):
     except Exception as e: 
         return ReadFileResponse(
             status='error',
+            message=str(e)
+        )
+
+async def rename_file(path: str, new_name: str):
+    try:
+        old_name = path.split('/')[-1]
+        old_ext = old_name.split('.')[-1]
+        if new_name.count('.') == 0: new_name += f'.{old_ext}'
+        
+        full_path = (Path(config.base_dir) / path).resolve()
+        new_path = (Path(config.base_dir) / new_name).resolve()
+        check_paths([path, new_name])
+        check_file(full_path)
+
+        full_path.rename(new_path)
+
+        return RenameFileResponse(
+            status='ok',
+            old_name=old_name,
+            new_name=new_name,
+            message=f'File {old_name} renamed to {new_name} successfully.'
+        )
+    except Exception as e: 
+        return RenameFileResponse(
+            status='error',
+            old_name=old_name,
+            new_name=new_name,
             message=str(e)
         )
