@@ -9,15 +9,15 @@ config = Config()
 
 async def list_dirs(path: str):
     try:
-        full_path_resolved = (Path(config.base_dir) / path).resolve()
+        full_path = (Path(config.base_dir) / path).resolve()
         check_path(path)
 
-        if not full_path_resolved.exists() or not full_path_resolved.is_dir():
+        if not full_path.exists() or not full_path.is_dir():
             raise DirsNotFoundHttpError(path)
 
         dirs = [
             str(f.as_posix()) 
-            for f in full_path_resolved.iterdir() 
+            for f in full_path.iterdir() 
             if f.is_dir()
             ]
         return ListDirsResponse(
@@ -33,13 +33,13 @@ async def list_dirs(path: str):
 
 async def create_dir(path: str): 
     try:
-        full_path_resolved = (Path(config.base_dir) / path).resolve()
+        full_path = (Path(config.base_dir) / path).resolve()
         check_path(path)
 
-        if full_path_resolved.exists():
+        if full_path.exists():
             raise DirsExistsHttpError(path)
 
-        full_path_resolved.mkdir(parents=True, exist_ok=False)
+        full_path.mkdir(parents=True, exist_ok=False)
         return CreateDirResponse(
             status='ok',
             message=f'Directory {path} created successfully.'

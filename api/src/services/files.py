@@ -11,15 +11,15 @@ config = Config()
 
 async def list_files(path):
     try:
-        full_path_resolved = (Path(config.base_dir) / path).resolve()
+        full_path = (Path(config.base_dir) / path).resolve()
         check_path(path)
 
-        if not full_path_resolved.exists() or not full_path_resolved.is_dir():
+        if not full_path.exists() or not full_path.is_dir():
             raise FileNotFoundError(f'Directory {path} does not exist.')
 
         files = [
             str(f.as_posix()) 
-            for f in full_path_resolved.iterdir() 
+            for f in full_path.iterdir() 
             if f.is_file()
             ]
         
@@ -82,16 +82,16 @@ async def delete_files(paths: list[str]):
 async def upload_file(file: UploadFile, path: str):
     try: 
         filename = file.filename
-        full_path_resolved = (Path(config.base_dir) / path / filename).resolve()
+        full_path = (Path(config.base_dir) / path / filename).resolve()
         check_path(path)
         check_path(filename)
 
-        if full_path_resolved.exists():
+        if full_path.exists():
             raise FileExistsHttpError(path)
-        if full_path_resolved.is_dir():
+        if full_path.is_dir():
             raise NotDirHttpError(path)
 
-        with open(str(full_path_resolved), 'wb') as f:
+        with open(str(full_path), 'wb') as f:
             while content := await file.read(30 * 1024 * 1024):  
                 f.write(content)
 
@@ -110,14 +110,14 @@ async def upload_file(file: UploadFile, path: str):
 async def read_file(path: str):
     try:
         data = ''
-        full_path_resolved = (Path(config.base_dir) / path).resolve()
+        full_path = (Path(config.base_dir) / path).resolve()
         check_path(path)
-        if not full_path_resolved.exists():
+        if not full_path.exists():
             raise FileNotFoundHttpError(path)
-        if not full_path_resolved.is_file():
+        if not full_path.is_file():
             raise NotFileHttpError(path)
 
-        with open(full_path_resolved, 'r') as f: data = f.read()
+        with open(full_path, 'r') as f: data = f.read()
 
         return ReadFileResponse(
             status='ok',
