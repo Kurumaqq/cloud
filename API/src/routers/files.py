@@ -8,7 +8,7 @@ router = APIRouter(prefix='/files', tags=['files'])
 config = Config()
 
 @router.get('/download/{path:path}')
-async def download_file(path: str, request) -> FileResponse | DownloadFileErrorResponse:
+async def download_file(path: str, request) -> DownloadFileErrorResponse:
     return await services.download_file(path, request)
 
 @router.get('/list/{path:path}', response_model=ListFilesResponse)
