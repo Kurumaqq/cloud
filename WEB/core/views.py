@@ -1,3 +1,7 @@
 from django.shortcuts import render
 
-# Create your views here.
+def explorer(request, full_path):
+    return render(request, 'main.html', {'path': full_path})
+
+def main(request):
+    return render(request, 'main.html')

@@ -1,0 +1,6 @@
+.explorer {
+  margin: 50px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+}

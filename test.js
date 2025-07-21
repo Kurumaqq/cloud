@@ -1,8 +1,9 @@
-let a = ['rock', 'paper', 'scissors'];
-b = '';
-function scissors() {
-    a.forEach((item, index) => {
-        b += `<p>${index + 1}. ${item}</p>`;
-    });
-    document.querySelector('.hui').innerHTML = b;
-}
+document.getElementById("drop-area").addEventListener("drop", (e) => {
+  e.preventDefault();
+  const files = e.dataTransfer.files;
+  console.log(files);
+});
+
+document.getElementById("drop-area").addEventListener("dragover", (e) => {
+  e.preventDefault();
+});

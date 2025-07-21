@@ -1,4 +1,5 @@
-from fastapi import APIRouter, UploadFile
+from fastapi import UploadFile, File, Request, Query
+from fastapi import APIRouter, UploadFile, Request
 from fastapi.responses import FileResponse 
 from src.schemas.files import *
 from src.config import Config
@@ -19,9 +20,15 @@ async def list_files(path: str, request) -> ListFilesResponse:
 async def read_file(path: str, request) -> ReadFileResponse:
     return await services.read_file(path, request)
 
+
 @router.post('/upload', response_model=UploadFileResponse)
-async def upload_files(file: UploadFile, path: str, request) -> UploadFileResponse:
+async def upload_files(
+    file: UploadFile = File(...),
+    path: str = Query(""),
+    request: Request = None
+) -> UploadFileResponse:
     return await services.upload_file(file, path, request)
+
 
 @router.post('/rename', response_model=RenameFileResponse)
 async def rename_file(path: str, new_name: str, request) -> RenameFileResponse:

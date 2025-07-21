@@ -1,0 +1,7 @@
+{
+  "apiUrl": "http://localhost:8001/combined/list/",
+  "headers": {
+    "Content-Type": "application/json",
+    "Authorization": "1682"
+  }
+}
