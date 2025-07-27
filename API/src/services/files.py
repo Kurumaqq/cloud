@@ -1,11 +1,14 @@
-from src.utils import check_path, check_file, check_paths, check_token
-from fastapi.responses import FileResponse
+from src.utils import check_path, check_file, check_paths, check_token,  chunk_generator
+from fastapi.responses import FileResponse, StreamingResponse
 from src.errors.dirs import NotDirHttpError
 from fastapi import UploadFile, Request
+from mimetypes import guess_type
 from src.schemas.files import *
 from src.errors.files import *
 from src.config import Config
 from pathlib import Path
+import shutil
+import os
 
 config = Config()
 
@@ -56,27 +59,26 @@ async def download_file(path: str, request: Request) -> FileResponse | DownloadF
             message=str(e)
         )
 
-async def delete_files(paths: list[str], request: Request) -> DeleteFilesResponse: 
+async def delete_file(path: str, request: Request) -> DeleteFilesResponse: 
     try: 
-        full_path = [(Path(config.base_dir) / path).resolve() for path in paths]
+        full_path = (Path((config.base_dir)) / path).resolve()
         token = request.headers['Authorization']
         
         check_token(token)
-        check_paths(paths)
+        check_path(path)
+        check_file(full_path)
 
-        for path in full_path:
-            check_file(path)
-            path.unlink()
+        full_path.unlink()
 
         return DeleteFilesResponse(
             status='ok',
-            files=paths,
-            message=f'Files {paths} deleted successfully.'
+            files=path,
+            message=f'File {path} deleted successfully.'
         )
     except Exception as e:
         return DeleteFilesResponse(
             status='error',
-            files=paths,
+            files=path,
             message=str(e)
         )
 
@@ -160,3 +162,63 @@ async def rename_file(path: str, new_name: str, request: Request) -> RenameFileR
             new_name=new_name,
             message=str(e)
         )
+
+async def copy_file(file_path: str, copy_path: str, request: Request) -> CopyFileResponse:
+    try:
+        token = request.headers['Authorization']
+        dirname = file_path.split('/')[-1]
+        full_path_file = (Path(config.base_dir) / file_path).resolve()
+        full_path_copy = (Path(config.base_dir) / copy_path).resolve()
+        check_token(token)
+        check_paths([file_path, copy_path])
+        check_file(full_path_file)
+
+        if full_path_file == full_path_copy: print('Poshel nahui')
+
+        shutil.copy(full_path_file, f'{full_path_file}_copy')
+        shutil.move(f'{full_path_file}_copy', full_path_copy)
+        shutil.move(
+            f'{full_path_copy}/{dirname}_copy', 
+            f'{full_path_copy}/{dirname}'
+            )
+        return CopyFileResponse(
+            status='ok',
+            old_path=file_path,
+            new_path=copy_path,
+            message=f'Directory {file_path} move to {copy_path} successfully.'
+        )
+    except Exception as e: 
+        return CopyFileResponse(
+            status='error',
+            old_path=file_path,
+            new_path=copy_path,
+            message=str(e)
+        )
+
+async def get_file(path: str, request: Request):
+    try:
+        filename = path.split('/')[-1]
+        full_path = (Path(config.base_dir) / path).resolve()
+        token = request.headers['Authorization']
+        check_token(token)
+        check_path(path)  
+
+        mime_type = guess_type(filename)[0] or "application/octet-stream"
+        file_size = os.path.getsize(full_path)
+        chunk_size = 5 * 1024 * 1024 
+        
+        headers = {
+            "Accept-Ranges": "bytes",
+            "Content-Length": str(file_size),
+        }
+        return StreamingResponse(
+            chunk_generator(full_path, chunk_size),
+            headers=headers,
+            media_type=mime_type,
+        )
+    except Exception as e:
+        return GetFileErrorResponse(
+            status='error',
+            filename=filename,
+            message=str(e)
+        ) 

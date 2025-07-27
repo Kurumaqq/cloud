@@ -30,3 +30,14 @@ class RenameFileResponse(BaseModel):
     old_name: Optional[str] = None
     new_name: Optional[str] = None
     message: Optional[str] = None
+
+class GetFileErrorResponse(BaseModel): 
+    status: Literal['error']
+    filename: Optional[str] = None
+    message: Optional[str] = None
+
+class CopyFileResponse(BaseModel):
+    status: Literal['ok', 'error']
+    old_path: Optional[str]
+    new_path: Optional[str]
+    message: Optional[str]

@@ -1,6 +1,0 @@
-{
-  "apiUrl": "hui",
-  "headers": {
-    "Content-Type": "application/json"
-  }
-}

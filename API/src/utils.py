@@ -43,3 +43,10 @@ def check_token(token):
     if config.token != token: raise InvalidToken(token)
 
     return True
+
+async def chunk_generator(path, chunk_size):
+            with open(path, "rb") as f:
+                while True:
+                    chunk = f.read(chunk_size)
+                    if not chunk: break
+                    yield chunk

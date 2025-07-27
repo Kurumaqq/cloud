@@ -20,3 +20,11 @@ button {
   outline: none;
   cursor: pointer;
 }
+
+textarea {
+  all: unset;
+  display: inline-block;
+  box-sizing: border-box;
+  resize: both;
+  white-space: pre-wrap;
+}

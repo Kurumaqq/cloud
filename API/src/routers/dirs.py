@@ -16,6 +16,10 @@ async def create_dir(path: str, request: Request) -> CreateDirResponse:
 async def rename_dir(path: str, new_name: str, request: Request) -> RenameDirResponse:
     return await services.rename_dir(path, new_name, request)
 
+@router.post('/copy', response_model=CopyDirResponse)
+async def copy_dir(dir_path: str, copy_path: str, request: Request):
+    return await services.copy_dir(dir_path, copy_path, request)
+
 @router.delete('/delete', response_model=DeleteDirResponse)
 async def delete_dir(path: str, request: Request) -> DeleteDirResponse:    
    return await services.delete_dir(path, request)

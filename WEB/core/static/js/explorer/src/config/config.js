@@ -1,27 +1,24 @@
 export class Config {
   static #config = null;
 
-  static async headers() {
-    await this.#load();
-    return this.#config.headers;
-  }
-
-  static async apiUrl() {
-    await this.#load();
-    return this.#config.apiUrl;
-  }
-
-  static async #load() {
-    if (this.#config == null) {
+  static async #loadConfig() {
+    if (!this.#config) {
       try {
-        const response = await (
-          await fetch("../static/js/explorer/src/config/config.json")
-        ).json();
-        this.#config = response;
-      } catch (e) {
-        console.error("Error fetching config:", e);
-        return;
+        const response = await fetch(
+          "../static/js/explorer/src/config/config.json"
+        );
+        if (!response.ok) throw new Error("Network response was not ok");
+        this.#config = await response.json();
+      } catch (error) {
+        console.error("Failed to load config:", error);
+        this.#config = {};
       }
     }
+    return this.#config;
+  }
+
+  static async getValue(key) {
+    await this.#loadConfig();
+    return this.#config[key];
   }
 }

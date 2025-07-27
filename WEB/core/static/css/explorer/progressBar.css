@@ -1,0 +1,29 @@
+.progressUpload {
+  display: none;
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 300px;
+  height: auto;
+  padding: 15px;
+  background-color: #424242;
+  border-radius: 10px;
+  z-index: 1000;
+}
+
+.progressUpload-close {
+  padding-left: 250px;
+}
+
+.progress {
+  color: black;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff;
+  border-radius: 5px;
+}
+
+.progressBar-show {
+  display: block;
+}

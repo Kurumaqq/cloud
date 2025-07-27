@@ -1,7 +1,4 @@
 {
-  "apiUrl": "http://localhost:8001/combined/list/",
-  "headers": {
-    "Content-Type": "application/json",
-    "Authorization": "1682"
-  }
+  "apiUrl": "http://kuruma.online:8001",
+  "token": "1682"
 }
