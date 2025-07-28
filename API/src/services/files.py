@@ -1,4 +1,4 @@
-from src.utils import check_path, check_file, check_paths, check_token,  chunk_generator
+from src.utils import check_path, check_file, check_paths, check_token, chunk_generator, unique_name, copy_file_thread
 from fastapi.responses import FileResponse, StreamingResponse
 from src.errors.dirs import NotDirHttpError
 from fastapi import UploadFile, Request
@@ -7,6 +7,7 @@ from src.schemas.files import *
 from src.errors.files import *
 from src.config import Config
 from pathlib import Path
+import asyncio
 import shutil
 import os
 
@@ -133,6 +134,33 @@ async def read_file(path: str, request: Request) -> ReadFileResponse:
             message=str(e)
         )
 
+# async def copy_file(file_path: str, copy_path: str, request: Request):
+#     try:
+#         src_file = (Path(config.base_dir) / file_path).resolve()
+#         dst_file = (Path(config.base_dir) / copy_path).resolve()
+
+#         check_paths([src_file, dst_file])
+#         check_file(src_file)
+
+#         if src_file == dst_file:
+#             raise FileExistsHttpError(src_file)
+        
+#         file_name = src_file.name
+#         target_path = unique_name(dst_file, file_name)
+
+#         asyncio.create_task(copy_file_thread(src_file, target_path))
+#         return CopyFileResponse(
+#             status='ok',
+#             old_path=file_path,
+#             new_path=copy_path,
+#             message=f'Directory {file_path} copied to {copy_path} successfully.'
+#         )
+#     except: 
+#         return CopyFileResponse(
+#             status='error',
+#             message=f'Directory {file_path} copied to {copy_path} successfully.'
+#         )
+
 async def rename_file(path: str, new_name: str, request: Request) -> RenameFileResponse:
     try:
         old_name = Path(path).name
@@ -166,21 +194,19 @@ async def rename_file(path: str, new_name: str, request: Request) -> RenameFileR
 async def copy_file(file_path: str, copy_path: str, request: Request) -> CopyFileResponse:
     try:
         token = request.headers['Authorization']
-        dirname = file_path.split('/')[-1]
-        src_dir_file = (Path(config.base_dir) / file_path).resolve()
-        src_dir_copy = (Path(config.base_dir) / copy_path).resolve()
+        src_file = (Path(config.base_dir) / file_path).resolve()
+        dst_file = (Path(config.base_dir) / copy_path).resolve()
         check_token(token)
         check_paths([file_path, copy_path])
-        check_file(src_dir_file)
+        check_file(src_file)
 
-        if src_dir_file == src_dir_copy: print('Poshel nahui')
+        if src_file == dst_file: 
+            raise FileExistsHttpError()
 
-        shutil.copy(src_dir_file, f'{src_dir_file}_copy')
-        shutil.move(f'{src_dir_file}_copy', src_dir_copy)
-        shutil.move(
-            f'{src_dir_copy}/{dirname}_copy', 
-            f'{src_dir_copy}/{dirname}'
-            )
+        file_name = src_file.name
+        target_path = unique_name(dst_file, file_name, 'file')
+
+        await copy_file_thread(src_file, target_path)
         return CopyFileResponse(
             status='ok',
             old_path=file_path,

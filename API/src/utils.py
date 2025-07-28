@@ -72,14 +72,27 @@ def size_convert(value: int):
             value = int(value * 100) / 100
             return {'size': value, 'type': types[i-1]}
 
-def unique_name(dst_dir: Path, dir_name: str) -> Path:
-    target_path = dst_dir / dir_name
+def unique_name(dst: Path, name: str, t: str) -> Path:
+    target_path = dst / name
     counter = 1
+    FILE_TYPE = 'file'
+    DIR_TYPE = 'dir'
     while target_path.exists():
-        target_path = dst_dir / f"{dir_name}_{counter}"
+        if t == DIR_TYPE:
+            target_path = dst / f"{name}_{counter}"
+        elif t == FILE_TYPE:
+            if '.' in name:
+                name_part, ext = name.rsplit('.', 1)
+                target_path = dst / f"{name_part}_{counter}.{ext}"
+            else:
+                target_path = dst / f"{name}_{counter}"
         counter += 1
     return target_path
 
-async def copy_dir_in_thread(src: Path, dst: Path):
+async def copy_dir_thread(src: Path, dst: Path):
     await asyncio.to_thread(shutil.copytree, src, dst)
+    return dst
+
+async def copy_file_thread(src: Path, dst: Path):
+    await asyncio.to_thread(shutil.copy, src, dst)
     return dst

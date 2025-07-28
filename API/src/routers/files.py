@@ -38,7 +38,7 @@ async def rename_file(path: str, new_name: str, request: Request) -> RenameFileR
     return await services.rename_file(path, new_name, request)
 
 @router.post('/copy', response_model=CopyFileResponse)
-async def copy_file(file_path: str, copy_path: str, request: Request):
+async def copy_file(file_path: str, copy_path: str, request: Request) -> CopyFileResponse:
     return await services.copy_file(file_path, copy_path, request)
 
 @router.delete('/delete', response_model=DeleteFilesResponse)

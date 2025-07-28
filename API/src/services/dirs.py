@@ -1,4 +1,4 @@
-from src.utils import check_path, check_dir, check_paths, check_token, size_convert, unique_name, copy_dir_in_thread
+from src.utils import check_path, check_dir, check_paths, check_token, size_convert, unique_name, copy_dir_thread
 from src.schemas.dirs import *
 from src.errors.dirs import * 
 from src.config import Config
@@ -115,9 +115,8 @@ async def rename_dir(path: str, new_name: str, request: Request) -> RenameDirRes
 async def copy_dir(dir_path: str, copy_path: str, request: Request) -> CopyDirResponse:
     try:
         token = request.headers['Authorization']
-        base_dir = Path(config.base_dir)
-        src_dir = (base_dir / dir_path).resolve()
-        dst_dir = (base_dir / copy_path).resolve()
+        src_dir = (Path(config.base_dir) / dir_path).resolve()
+        dst_dir = (Path(config.base_dir) / copy_path).resolve()
 
         check_token(token)
         check_paths([dir_path, copy_path])
@@ -129,7 +128,7 @@ async def copy_dir(dir_path: str, copy_path: str, request: Request) -> CopyDirRe
         dir_name = src_dir.name
         target_path = unique_name(dst_dir, dir_name)
 
-        asyncio.create_task(copy_dir_in_thread(src_dir, target_path))
+        await copy_dir_thread(src_dir, target_path)
         return CopyDirResponse(
             status='ok',
             old_path=dir_path,

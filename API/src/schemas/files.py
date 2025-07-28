@@ -38,6 +38,6 @@ class GetFileErrorResponse(BaseModel):
 
 class CopyFileResponse(BaseModel):
     status: Literal['ok', 'error']
-    old_path: Optional[str]
-    new_path: Optional[str]
+    old_path: Optional[str] = None
+    new_path: Optional[str]= None
     message: Optional[str]
