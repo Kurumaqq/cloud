@@ -15,16 +15,16 @@ config = Config()
 async def list_files(path: str, request: Request) -> ListFilesResponse:
     try:
         token = request.headers['Authorization']
-        full_path = (Path(config.base_dir) / path).resolve()
+        src_dir = (Path(config.base_dir) / path).resolve()
         check_token(token)
         check_path(path)
 
-        if not full_path.is_dir():
+        if not src_dir.is_dir():
             raise NotDirHttpError(path)
 
         files = [
             str(f.as_posix()) 
-            for f in full_path.iterdir() 
+            for f in src_dir.iterdir() 
             if f.is_file()
             ]
         
@@ -43,15 +43,15 @@ async def list_files(path: str, request: Request) -> ListFilesResponse:
 async def download_file(path: str, request: Request) -> FileResponse | DownloadFileErrorResponse:
     try:
         token = request.headers['Authorization']
-        full_path = (Path(config.base_dir) / path).resolve()
+        src_dir = (Path(config.base_dir) / path).resolve()
         check_token(token)
         check_path(path)   
-        check_file(full_path)
+        check_file(src_dir)
 
         return FileResponse(
-            path=str(full_path),
+            path=str(src_dir),
             media_type='application/octet-stream',
-            filename=full_path.name
+            filename=src_dir.name
         )
     except Exception as e:
         return DownloadFileErrorResponse(
@@ -61,14 +61,14 @@ async def download_file(path: str, request: Request) -> FileResponse | DownloadF
 
 async def delete_file(path: str, request: Request) -> DeleteFilesResponse: 
     try: 
-        full_path = (Path((config.base_dir)) / path).resolve()
+        src_dir = (Path((config.base_dir)) / path).resolve()
         token = request.headers['Authorization']
         
         check_token(token)
         check_path(path)
-        check_file(full_path)
+        check_file(src_dir)
 
-        full_path.unlink()
+        src_dir.unlink()
 
         return DeleteFilesResponse(
             status='ok',
@@ -86,13 +86,13 @@ async def delete_file(path: str, request: Request) -> DeleteFilesResponse:
 async def upload_file(file: UploadFile, path: str, request: Request) -> UploadFileResponse:
     try: 
         filename = file.filename
-        full_path = (Path(config.base_dir) / path / filename).resolve()
+        src_dir = (Path(config.base_dir) / path / filename).resolve()
         token = request.headers['Authorization']
 
         check_token(token)
         check_paths([path, filename])
 
-        with open(str(full_path), 'wb') as f:
+        with open(str(src_dir), 'wb') as f:
             while content := await file.read(30 * 1024 * 1024):  
                 f.write(content)
 
@@ -113,14 +113,14 @@ async def upload_file(file: UploadFile, path: str, request: Request) -> UploadFi
 async def read_file(path: str, request: Request) -> ReadFileResponse:
     try:
         data = ''
-        full_path = (Path(config.base_dir) / path).resolve()
+        src_dir = (Path(config.base_dir) / path).resolve()
         token = request.headers['Authorization']
 
         check_token(token)
         check_path(path)
-        check_file(full_path)
+        check_file(src_dir)
 
-        with open(full_path, 'r') as f: data = f.read()
+        with open(src_dir, 'r') as f: data = f.read()
 
         return ReadFileResponse(
             status='ok',
@@ -139,15 +139,15 @@ async def rename_file(path: str, new_name: str, request: Request) -> RenameFileR
         old_ext = Path(old_name).suffix
         if new_name.count('.') == 0: new_name += old_ext
         
-        full_path = (Path(config.base_dir) / path).resolve()
+        src_dir = (Path(config.base_dir) / path).resolve()
         new_path = (Path(config.base_dir) / new_name).resolve()
         token = request.headers['Authorization']
 
         check_token(token)
         check_paths([path, new_name])
-        check_file(full_path)
+        check_file(src_dir)
 
-        full_path.rename(new_path)
+        src_dir.rename(new_path)
 
         return RenameFileResponse(
             status='ok',
@@ -167,19 +167,19 @@ async def copy_file(file_path: str, copy_path: str, request: Request) -> CopyFil
     try:
         token = request.headers['Authorization']
         dirname = file_path.split('/')[-1]
-        full_path_file = (Path(config.base_dir) / file_path).resolve()
-        full_path_copy = (Path(config.base_dir) / copy_path).resolve()
+        src_dir_file = (Path(config.base_dir) / file_path).resolve()
+        src_dir_copy = (Path(config.base_dir) / copy_path).resolve()
         check_token(token)
         check_paths([file_path, copy_path])
-        check_file(full_path_file)
+        check_file(src_dir_file)
 
-        if full_path_file == full_path_copy: print('Poshel nahui')
+        if src_dir_file == src_dir_copy: print('Poshel nahui')
 
-        shutil.copy(full_path_file, f'{full_path_file}_copy')
-        shutil.move(f'{full_path_file}_copy', full_path_copy)
+        shutil.copy(src_dir_file, f'{src_dir_file}_copy')
+        shutil.move(f'{src_dir_file}_copy', src_dir_copy)
         shutil.move(
-            f'{full_path_copy}/{dirname}_copy', 
-            f'{full_path_copy}/{dirname}'
+            f'{src_dir_copy}/{dirname}_copy', 
+            f'{src_dir_copy}/{dirname}'
             )
         return CopyFileResponse(
             status='ok',
@@ -198,13 +198,13 @@ async def copy_file(file_path: str, copy_path: str, request: Request) -> CopyFil
 async def get_file(path: str, request: Request):
     try:
         filename = path.split('/')[-1]
-        full_path = (Path(config.base_dir) / path).resolve()
+        src_dir = (Path(config.base_dir) / path).resolve()
         token = request.headers['Authorization']
         check_token(token)
         check_path(path)  
 
         mime_type = guess_type(filename)[0] or "application/octet-stream"
-        file_size = os.path.getsize(full_path)
+        file_size = os.path.getsize(src_dir)
         chunk_size = 5 * 1024 * 1024 
         
         headers = {
@@ -212,7 +212,7 @@ async def get_file(path: str, request: Request):
             "Content-Length": str(file_size),
         }
         return StreamingResponse(
-            chunk_generator(full_path, chunk_size),
+            chunk_generator(src_dir, chunk_size),
             headers=headers,
             media_type=mime_type,
         )

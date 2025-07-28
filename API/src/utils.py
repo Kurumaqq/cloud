@@ -3,6 +3,8 @@ from src.errors.files import FileNotFoundHttpError, NotFileHttpError
 from src.errors.dirs import DirNotFoundHttpError, NotDirHttpError
 from src.config import Config
 from pathlib import Path
+import asyncio
+import shutil
 
 config = Config()
 
@@ -50,3 +52,34 @@ async def chunk_generator(path, chunk_size):
                     chunk = f.read(chunk_size)
                     if not chunk: break
                     yield chunk
+
+     
+def size_convert(value: int):
+     types = {
+         -1: 'bytes ',
+          0: 'KB',
+          1: 'MB',
+          2: 'GB'
+     }
+     for i in range(3):
+        print(i)
+        if value / 1024 > 1: 
+            value /= 1024
+            print(value)
+        else: 
+            print(i)
+            print(value)
+            value = int(value * 100) / 100
+            return {'size': value, 'type': types[i-1]}
+
+def unique_name(dst_dir: Path, dir_name: str) -> Path:
+    target_path = dst_dir / dir_name
+    counter = 1
+    while target_path.exists():
+        target_path = dst_dir / f"{dir_name}_{counter}"
+        counter += 1
+    return target_path
+
+async def copy_dir_in_thread(src: Path, dst: Path):
+    await asyncio.to_thread(shutil.copytree, src, dst)
+    return dst

@@ -7,6 +7,9 @@ router = APIRouter(prefix='/dirs', tags=['dirs'])
 @router.get('/list/{path:path}', response_model=ListDirsResponse)
 async def list_dirs(path: str, request: Request) -> ListDirsResponse: 
     return await services.list_dirs(path, request)
+@router.get('/size/{path:path}', response_model=SizeDirResponse)
+async def size_dir(path: str, request: Request) -> SizeDirResponse: 
+    return await services.size_dir(path, request)
 
 @router.post('/create', response_model=CreateDirResponse)
 async def create_dir(path: str, request: Request) -> CreateDirResponse:
