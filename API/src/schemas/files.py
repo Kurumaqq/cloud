@@ -40,4 +40,5 @@ class CopyFileResponse(BaseModel):
     status: Literal['ok', 'error']
     old_path: Optional[str] = None
     new_path: Optional[str]= None
+    name: Optional[str] = None
     message: Optional[str]

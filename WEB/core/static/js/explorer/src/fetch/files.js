@@ -2,8 +2,7 @@ import { updateProgressBar } from "../utils.js";
 import { Config } from "../config/config.js";
 import { progressBarEl } from "../elements/other.js";
 import { fileEl } from "../elements/files.js";
-// import progressBarEl
-// import {  fileEl} from " fileEl";
+
 export async function listFiles(path) {
   try {
     const apiUrl = await Config.getValue("apiUrl");
@@ -26,6 +25,51 @@ export async function listFiles(path) {
   }
 }
 
+export async function sizeFile(path) {
+  try {
+    const apiUrl = await Config.getValue("apiUrl");
+    const token = await Config.getValue("token");
+
+    const response = await fetch(`${apiUrl}/files/size/${path}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
+    });
+
+    if (!response.ok) throw new Error(response.status);
+
+    const data = await response.json();
+    return data;
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+export async function getFile(path) {
+  try {
+    const apiUrl = await Config.getValue("apiUrl");
+    const token = await Config.getValue("token");
+
+    const response = await fetch(`${apiUrl}/files/get/${path}`, {
+      method: "GET",
+      headers: {
+        Authorization: token,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+    }
+
+    const blob = await response.blob();
+    return blob;
+  } catch (e) {
+    console.error("Failed to fetch file:", e);
+    throw e;
+  }
+}
 export async function downloadFile(path) {
   try {
     const apiUrl = await Config.getValue("apiUrl");
@@ -74,7 +118,6 @@ export async function readFile(path) {
 
 export function uploadFiles(e) {
   e.preventDefault();
-
   const progressUpload = document.querySelector(".progressUpload");
   progressUpload.classList.add("progressBar-show");
 
@@ -112,7 +155,34 @@ export async function renameFile(path, new_name) {
   }
 }
 
-export function uploadFile(file) {
+export async function copyFile(path, new_path) {
+  try {
+    const apiUrl = await Config.getValue("apiUrl");
+    const token = await Config.getValue("token");
+
+    const response = await fetch(
+      `${apiUrl}/files/copy?file_path=${path}&copy_path=${new_path}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "aplication/json",
+          Authorization: token,
+        },
+      }
+    );
+
+    if (!response.ok) throw new Error(response.status);
+
+    const data = await response.json();
+    return data;
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+export async function uploadFile(file) {
+  const apiUrl = await Config.getValue("apiUrl");
+  const token = await Config.getValue("token");
   const path = window.location.pathname.slice(1);
   const progressUpload = document.querySelector(".progressUpload");
   const progressElement = progressBarEl();
@@ -126,8 +196,8 @@ export function uploadFile(file) {
   formData.append("file", file, file.name);
 
   const xhr = new XMLHttpRequest();
-  xhr.open("POST", `http://kuruma.online:8001/files/upload?path=${path}`, true);
-  xhr.setRequestHeader("Authorization", "1682");
+  xhr.open("POST", `${apiUrl}/files/upload?path=${path}`, true);
+  xhr.setRequestHeader("Authorization", token);
 
   xhr.upload.addEventListener("progress", (event) => {
     if (event.lengthComputable) {
@@ -137,14 +207,14 @@ export function uploadFile(file) {
 
   xhr.onload = () => {
     if (xhr.status >= 200 && xhr.status < 300) {
-      const container = document.querySelector(".explorer");
+      const explorer = document.querySelector(".explorer");
       const fileNames = document.querySelectorAll(".file-title");
 
       const isFileAlreadyExist = Array.from(fileNames).some(
         (el) => el.textContent === file.name
       );
 
-      isFileAlreadyExist ? null : fileEl(container, file.name);
+      isFileAlreadyExist ? null : explorer.appendChild(fileEl(file.name));
     } else {
       console.error("Ошибка загрузки:", xhr.statusText);
     }

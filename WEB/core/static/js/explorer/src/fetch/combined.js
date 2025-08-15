@@ -2,8 +2,10 @@ import { getPath } from "../utils.js";
 import { fileEl } from "../elements/files.js";
 import { dirEl } from "../elements/dirs.js";
 
-export async function fetchAndRenderExplorer(url, container) {
-  try {
+// TODO: DISK
+
+export async function fetchAndRenderExplorer(url) {
+  try { 
     const path = window.location.pathname;
     const response = await fetch(`${url}${path}`, {
       headers: {
@@ -16,15 +18,17 @@ export async function fetchAndRenderExplorer(url, container) {
     const data = await response.json();
     if (!data?.dirs && !data?.files) return;
 
+    const explorer = document.querySelector(".explorer");
     data.dirs.forEach((e) => {
-      dirEl(container, getPath(e));
+      console.log("HUIQWEQE");
+      explorer.appendChild(dirEl(getPath(e)));
     });
 
     data.files.forEach((e) => {
-      fileEl(container, getPath(e));
+      console.log("HUIQWEQE");
+      explorer.appendChild(fileEl(getPath(e)));
     });
   } catch (e) {
     console.error("Ошибка:", e);
-    container.textContent = "Ошибка загрузки данных";
   }
 }

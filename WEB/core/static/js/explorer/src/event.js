@@ -1,35 +1,57 @@
 import { uploadFiles } from "./fetch/files.js";
+import { contextMenuEl } from "./elements/other.js";
+import { updateContextMenu } from "./utils.js";
 import { fetchAndRenderExplorer } from "./fetch/combined.js";
 
 export function loadEventListeners() {
   document.querySelector(".main").addEventListener("click", (e) => {
     e.preventDefault();
-    const contextFileMenu = document.querySelector(".contextFile");
-    const contextDirMenu = document.querySelector(".contextDir");
-    contextFileMenu ? contextFileMenu.remove() : null;
-    contextDirMenu ? contextDirMenu.remove() : null;
+    updateContextMenu();
   });
 
-  document.querySelector(".main").addEventListener("dragover", (e) => {
+  const main = document.querySelector(".main");
+
+  main.addEventListener("contextmenu", (e) => {
+    const excludedClasses = [
+      "file",
+      "file-icon",
+      "file-title",
+      "dir",
+      "dir-icon",
+      "dir-title",
+    ];
+    const isExcluded = excludedClasses.some((className) =>
+      e.target.classList.contains(className)
+    );
+
+    if (isExcluded) return;
+
     e.preventDefault();
-    if (!e.classList.contains(".file")) {
-      const main = document.querySelector(".main");
+
+    const existingMenu = document.querySelector(".contextMenu");
+    existingMenu?.remove();
+    const menu = contextMenuEl();
+    document.querySelector(".main").appendChild(menu);
+    menu.style.left = `${e.clientX}px`;
+    menu.style.top = `${e.clientY}px`;
+  });
+  main.addEventListener("dragover", (e) => {
+    if (e.dataTransfer.types.includes("Files")) {
+      e.preventDefault();
       main.classList.add("drop");
     }
   });
 
-  document.querySelector(".main").addEventListener("dragleave", (e) => {
-    e.preventDefault();
-    if (!e.classList.contains(".file")) {
-      const main = document.querySelector(".main");
+  main.addEventListener("dragleave", (e) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      e.preventDefault();
       main.classList.remove("drop");
     }
   });
 
-  document.querySelector(".main").addEventListener("drop", async (e) => {
-    e.preventDefault();
-    if (!e.classList.contains(".file")) {
-      const main = document.querySelector(".main");
+  main.addEventListener("drop", async (e) => {
+    if (e.dataTransfer.types.includes("Files")) {
+      e.preventDefault();
       main.classList.remove("drop");
       uploadFiles(e);
     }
@@ -41,12 +63,4 @@ export function loadEventListeners() {
       const progressUpload = document.querySelector(".progressUpload");
       progressUpload.classList.remove("progressBar-show");
     });
-
-  (async () => {
-    const container = document.querySelector(".explorer");
-    fetchAndRenderExplorer(
-      "http://kuruma.online:8001/combined/list",
-      container
-    );
-  })();
 }

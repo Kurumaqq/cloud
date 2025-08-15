@@ -1,11 +1,14 @@
 .dir {
   display: flex;
+  gap: 10px;
   flex-direction: column;
-  padding: 10px;
-  width: 90px;
-  height: auto;
+  width: 100px;
+  height: 100px;
   align-items: center;
+  justify-content: center;
   cursor: pointer;
+  border-radius: 20px;
+  background-color: #1b2f61;
 }
 
 .dir-title {
@@ -14,7 +17,10 @@
   overflow-wrap: break-word;
   text-align: center;
   max-width: 100px;
-  overflow: -moz-hidden-unscrollable;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow: hidden;
   text-overflow: ellipsis;
 }
 
@@ -24,6 +30,6 @@
 }
 
 .dir:hover {
-  background-color: #424242;
-  border-radius: 5px;
+  background-color: #3859ab;
+  border-radius: 20px;
 }

@@ -25,6 +25,7 @@ class CopyDirResponse(BaseModel):
     status: Literal['ok', 'error']
     old_path: Optional[str]
     new_path: Optional[str]
+    name: Optional[str] = None
     message: Optional[str]
 
 class SizeDirResponse(BaseModel):

@@ -15,7 +15,11 @@ export function openDir(dirname) {
 export async function contextDirDelete(dirname) {
   const path = window.location.pathname.slice(1);
   const fullPath = `${path}${dirname}`;
-  console.log(fullPath);
   await deleteDir(fullPath);
-  location.reload();
+  const names = document.querySelectorAll(`.dir-title`);
+  names.forEach((e) => {
+    if (e.textContent === dirname) {
+      e.parentElement.remove();
+    }
+  });
 }

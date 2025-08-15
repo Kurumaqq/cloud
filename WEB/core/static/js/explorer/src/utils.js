@@ -11,6 +11,8 @@ export function updateProgressBar(progressBar, loaded, total) {
 export function updateContextMenu() {
   const oldContextFileMenu = document.querySelector(".contextFile");
   const oldContextDirMenu = document.querySelector(".contextDir");
-  if (oldContextFileMenu) oldContextFileMenu.remove();
-  if (oldContextDirMenu) oldContextDirMenu.remove();
+  const oldContextMenu = document.querySelector(".contextMenu");
+  oldContextMenu ? oldContextMenu.remove() : null;
+  oldContextDirMenu ? oldContextDirMenu.remove() : null;
+  oldContextFileMenu ? oldContextFileMenu.remove() : null;
 }

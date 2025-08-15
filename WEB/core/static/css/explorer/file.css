@@ -1,11 +1,14 @@
 .file {
   display: flex;
   flex-direction: column;
-  padding: 10px;
-  width: 90px;
-  height: auto;
+  width: 100px;
+  height: 100px;
+  gap: 8px;
   align-items: center;
+  justify-content: center;
   cursor: pointer;
+  border-radius: 20px;
+  background-color: #1b2f61;
 }
 
 .file-title {
@@ -24,6 +27,6 @@
 }
 
 .file:hover {
-  background-color: #424242;
-  border-radius: 5px;
+  background-color: #3859ab;
+  border-radius: 20px;
 }

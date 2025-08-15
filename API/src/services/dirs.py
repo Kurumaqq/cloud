@@ -121,18 +121,17 @@ async def copy_dir(dir_path: str, copy_path: str, request: Request) -> CopyDirRe
         check_token(token)
         check_paths([dir_path, copy_path])
         check_dir(src_dir)
-        
-        if src_dir == dst_dir:
-            raise DirsExistsHttpError(dir_path)
 
         dir_name = src_dir.name
-        target_path = unique_name(dst_dir, dir_name)
+        target_path = unique_name(dst_dir, dir_name, 'dir')
+        name = target_path.name
 
         await copy_dir_thread(src_dir, target_path)
         return CopyDirResponse(
             status='ok',
             old_path=dir_path,
             new_path=copy_path,
+            name=name,
             message=f'Directory {dir_path} copied to {copy_path} successfully.'
         )
         

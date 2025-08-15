@@ -6,7 +6,7 @@
 .explorer {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 20px;
 }
 .drop {
   border: 2px dashed #ffffff;

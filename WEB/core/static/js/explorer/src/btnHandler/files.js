@@ -4,9 +4,13 @@ import { deleteFile } from "../fetch/files.js";
 export async function contextFileDel(filename) {
   const path = window.location.pathname.slice(1);
   const fullPath = `${path}${filename}`;
-  console.log(fullPath);
   await deleteFile(fullPath);
-  location.reload();
+  const names = document.querySelectorAll(`.file-title`);
+  names.forEach((e) => {
+    if (e.textContent === filename) {
+      e.parentElement.remove();
+    }
+  });
 }
 
 export function contextFileRename(filename) {

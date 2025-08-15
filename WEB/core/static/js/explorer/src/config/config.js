@@ -5,7 +5,7 @@ export class Config {
     if (!this.#config) {
       try {
         const response = await fetch(
-          "../static/js/explorer/src/config/config.json"
+          "/static/js/explorer/src/config/config.json"
         );
         if (!response.ok) throw new Error("Network response was not ok");
         this.#config = await response.json();
