@@ -4,6 +4,8 @@ from src.errors.dirs import DirNotFoundHttpError, NotDirHttpError
 from src.config import Config
 from pathlib import Path
 import asyncio
+import jwt
+import bcrypt
 import shutil
 
 config = Config()
@@ -41,10 +43,7 @@ def check_dir(path: Path) -> bool:
     return True
 
 def check_token(token):
-    token = f'Bearer {token}'
-    if config.token != token: raise InvalidToken(token)
-
-    return True
+    return decode_jwt(token)
 
 async def chunk_generator(path, chunk_size):
             with open(path, "rb") as f:
@@ -96,3 +95,13 @@ async def copy_dir_thread(src: Path, dst: Path):
 async def copy_file_thread(src: Path, dst: Path):
     await asyncio.to_thread(shutil.copy, src, dst)
     return dst
+
+
+def encode_jwt(payload: dict):
+    return jwt.encode(payload, config.secret_key, algorithm="RS256")
+
+def decode_jwt(token: str):
+    return jwt.decode(token, config.public_key, algorithms=["RS256"])
+
+def check_password(password: str, hashed_password: str):
+    return bcrypt.checkpw(password.encode(), hashed_password)

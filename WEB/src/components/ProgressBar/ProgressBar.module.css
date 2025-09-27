@@ -1,0 +1,76 @@
+li {
+  all: unset;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  width: 17rem;
+  max-height: 13.75rem;
+  margin: 0 30px 30px 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  border-radius: 15px;
+  border: hsl(0, 0%, 19%) solid 2px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  justify-content: space-between;
+  border-bottom: hsl(0, 0%, 19%) solid 2px;
+}
+
+.fileProgressBar {
+  all: unset;
+  display: flex;
+  align-items: center;
+  display: flex;
+}
+
+.fileIcon {
+  width: 24px;
+  padding-right: 5px;
+}
+
+.Filelist {
+  all: unset;
+}
+
+.fileTitle {
+  display: flex;
+  margin-left: 11px;
+  width: 200px;
+  align-items: center;
+}
+.fileTitle p {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+.progressBar {
+  margin-left: auto;
+  margin-right: 11px;
+  border-radius: 50px;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.closeIcon {
+  width: 25px;
+  height: 25px;
+}
+
+.closeBtn {
+  all: unset;
+  cursor: pointer;
+  margin-right: 20px;
+  height: 10px;
+  width: 10px;
+}

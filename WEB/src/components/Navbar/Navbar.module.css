@@ -1,0 +1,76 @@
+.navbar {
+  display: flex;
+  margin-top: 20px;
+  border-radius: 15px;
+  align-items: center;
+  background-color: #0d0d0d;
+  justify-content: center;
+  backdrop-filter: blur(15px);
+  gap: 13px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 60px;
+  align-items: center;
+  z-index: 1;
+}
+
+.li {
+  all: unset;
+}
+
+.path {
+  all: unset;
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+  border: hsl(0, 0%, 18.82%) solid 2px;
+  line-height: 3.4rem;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  width: 40rem;
+  height: 2rem;
+}
+
+.search {
+  all: unset;
+  font-size: 20px;
+  color: white;
+  border-radius: 10px;
+  line-height: 3.4rem;
+  border: hsl(0, 0%, 18.82%) solid 2px;
+  text-align: center;
+  width: 8rem;
+  height: 2rem;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.btn {
+  all: unset;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 5px;
+  background-color: #013a63;
+  border-radius: 50px;
+  padding: 10px;
+  margin-right: 10px;
+}
+
+.icon {
+  width: 22px;
+  height: 17px;
+}
+
+.btn:hover {
+  background-color: #2a6f97;
+  transition: ease 0.2s;
+}
+
+.path:focus {
+  border: 2px solid #2a6f97;
+}
+.search:focus {
+  border: 2px solid #2a6f97;
+}

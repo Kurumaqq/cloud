@@ -4,3 +4,4 @@ api/__pycache__/
 /API/venv
 hui.mp4
 /API/test.py
+/API/src/cert/*

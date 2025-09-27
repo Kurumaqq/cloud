@@ -1,0 +1,11 @@
+.cancel {
+  all: unset;
+  cursor: pointer;
+  border-radius: 50px;
+  padding: 10px 30px 10px 30px;
+  border: hsl(0, 0%, 19%) solid 2px;
+}
+
+.cancel:hover {
+  border: 2px solid #2a6f97;
+}

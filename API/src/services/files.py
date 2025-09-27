@@ -1,7 +1,7 @@
 from src.utils import check_path, check_file, check_paths, check_token, chunk_generator, unique_name, copy_file_thread
 from fastapi.responses import FileResponse, StreamingResponse
 from src.errors.dirs import NotDirHttpError
-from fastapi import UploadFile, Request
+from fastapi import UploadFile, Request, Query
 from mimetypes import guess_type
 from src.schemas.files import *
 from src.errors.files import *
@@ -45,22 +45,30 @@ async def download_file(path: str, request: Request) -> FileResponse | DownloadF
     try:
         token = request.headers['Authorization']
         src_dir = (Path(config.base_dir) / path).resolve()
+        print(path)
+        print(src_dir)
         check_token(token)
         check_path(path)   
         check_file(src_dir)
 
+        headers = {
+        "Access-Control-Allow-Origin": "http://127.0.0.1:5173",
+        "Access-Control-Allow-Headers": "Authorization, Content-Type",
+        "Access-Control-Allow-Methods": "GET, OPTIONS"
+    }
         return FileResponse(
             path=str(src_dir),
             media_type='application/octet-stream',
-            filename=src_dir.name
+            filename=src_dir.name,
+            headers=headers
         )
     except Exception as e:
-        return DownloadFileErrorResponse(
+        return DownloadFileErrorResponse(   
             status='error',
             message=str(e)
         )
 
-async def delete_file(path: str, request: Request) -> DeleteFilesResponse: 
+async def delete_file(path: str , request: Request) -> DeleteFilesResponse: 
     try: 
         src_dir = (Path((config.base_dir)) / path).resolve()
         token = request.headers['Authorization']

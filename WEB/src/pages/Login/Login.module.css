@@ -1,0 +1,91 @@
+@font-face {
+  font-family: "RobotoMono";
+  src: url("../../assets/fonts/roboto-mono.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+.login {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.form {
+  display: flex;
+  padding: 3rem;
+  flex-direction: column;
+  border-radius: 15px;
+  background-color: rgba(19, 47, 76, 0.85);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  width: 20rem;
+  height: auto;
+  justify-content: center;
+  box-shadow: 0px 0px 15px rgba(54, 113, 189, 0.2);
+}
+
+.title {
+  margin: 0;
+  color: #2591ff;
+  font-size: 35px;
+  text-align: center;
+}
+
+.label {
+  font-size: 24px;
+  margin-top: 1rem;
+}
+
+.subtitle {
+  font-size: 24px;
+  text-align: center;
+  padding: 0;
+  margin-top: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.button {
+  all: unset;
+  cursor: pointer;
+  font-size: 24px;
+  text-align: center;
+  margin-top: 3rem;
+  background-color: #0069d5;
+  padding: 1.4rem;
+  border-radius: 8px;
+  box-shadow: 0px 0px 15px rgba(0, 126, 255, 0.35);
+}
+
+.input {
+  all: unset;
+  background-color: rgba(20, 59, 99, 0.95);
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(54, 113, 189, 0.2);
+  box-shadow: 0px 0px 15px rgba(19, 99, 180, 0.2);
+}
+
+.login::before {
+  content: "";
+  position: fixed;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  background: url(../../assets/background.png) center/cover no-repeat;
+  filter: blur(3px);
+  z-index: -1;
+}
+
+.input::placeholder {
+  font-size: 14px;
+  color: #78a2cd;
+}
+
+.button:hover {
+  background-color: #00509f;
+  color: #cfcfcf;
+  transition: background-color 0.2s ease;
+}

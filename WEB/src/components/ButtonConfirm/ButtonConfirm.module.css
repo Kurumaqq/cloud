@@ -1,0 +1,12 @@
+.confirm {
+  all: unset;
+  cursor: pointer;
+  padding: 10px 30px 10px 30px;
+  border-radius: 50px;
+  background-color: #013a63;
+}
+
+.confirm:hover {
+  background-color: #2a6f97;
+  transition: ease 0.2s;
+}
