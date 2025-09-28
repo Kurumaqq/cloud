@@ -8,6 +8,8 @@ app = FastAPI()
 config = Config()
 origins = [
     "http://127.0.0.1:5173",
+    "http://127.0.0.1:4173",
+    "http://192.168.0.10:4173"
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -23,5 +25,5 @@ if __name__ == '__main__':
         'run:app', 
         host=config.host,
         port=config.port,
-        reload=True
+        reload=True,
         )

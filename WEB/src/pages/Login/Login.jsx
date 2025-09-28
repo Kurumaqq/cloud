@@ -10,7 +10,7 @@ export default function LoginForm() {
 
   const handleClick = () => {
     axios
-      .post("http://127.0.0.1:8001/login", {
+      .post("https://api.cloud.kuruma.online/login", {
         username: username,
         password: password,
       })

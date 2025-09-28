@@ -2,7 +2,7 @@ import classes from "./File.module.css";
 import docIcon from "/src/assets/icons/files/document.svg";
 
 export default function File({ text, icon, contextHandle }) {
-  const icon_path = "/src/assets/icons/files";
+  const icon_path = "/icons/files";
 
   return (
     <div

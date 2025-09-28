@@ -33,9 +33,12 @@ export const uploadFile = async (
   file,
   path,
   setProgressFiles,
-  setShowProgressFiles
+  setShowProgressFiles,
+  setDirs,
+  setFiles
 ) => {
   try {
+    console.log("hui");
     setShowProgressFiles(true);
     setProgressFiles((prev) => [
       ...prev,
@@ -46,11 +49,16 @@ export const uploadFile = async (
       },
     ]);
 
-    await uploadFileApi(path, file, (percent) => {
+    const a = await uploadFileApi(path, file, (percent) => {
       setProgressFiles((prev) =>
         prev.map((f) => (f.name === file.name ? { ...f, percent } : f))
       );
     });
+    const curr_path = location.pathname
+      .replace("/root/", "")
+      .replace(/\/{2,}/g, "/")
+      .replace("/root", "");
+    if (curr_path === path) updateExplorer(path, setDirs, setFiles);
   } catch (err) {
     console.error("Ошибка загрузки", err);
   }

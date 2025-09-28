@@ -1,4 +1,3 @@
-import { useState } from "react";
 import classes from "./ProgressBar.module.css";
 
 export default function ProgressBar({
@@ -7,7 +6,7 @@ export default function ProgressBar({
   setShow,
   setProgressFiles,
 }) {
-  const iconDir = "/src/assets/icons/files";
+  const iconDir = "/icons/files";
   return (
     <>
       {show ? (
@@ -23,7 +22,7 @@ export default function ProgressBar({
             >
               <img
                 className={classes.closeIcon}
-                src={"/src/assets/icons/close.svg"}
+                src={"/icons/close.svg"}
                 alt="close"
               />
             </button>

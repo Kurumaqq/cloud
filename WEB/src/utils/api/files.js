@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE = "http://127.0.0.1:8001";
+const API_BASE = "https://api.cloud.kuruma.online";
 
 export const listFiles = (path) =>
   axios.get(`${API_BASE}/files/list/${path}`, {
@@ -9,23 +9,59 @@ export const listFiles = (path) =>
     },
   });
 
-export const uploadFileApi = (path, file, onProgress) => {
-  const formData = new FormData();
-  formData.append("file", file, file.name);
+const CHUNK_SIZE = 5 * 1024 * 1024;
 
-  return axios.post(`${API_BASE}/files/upload?path=${path}`, formData, {
+export const uploadFileApi = async (path, file, onProgress) => {
+  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+  const uploadId = Date.now() + "-" + file.name;
+
+  let uploadedBytes = 0;
+
+  for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+    const start = chunkIndex * CHUNK_SIZE;
+    const end = Math.min(start + CHUNK_SIZE, file.size);
+    const chunk = file.slice(start, end);
+
+    const formData = new FormData();
+    formData.append("file", chunk, file.name);
+    formData.append("uploadId", uploadId);
+    formData.append("chunkIndex", chunkIndex);
+    formData.append("totalChunks", totalChunks);
+    formData.append("filename", file.name);
+    formData.append("path", path);
+
+    await axios.post(`${API_BASE}/files/upload`, formData, {
+      headers: {
+        Authorization: localStorage.getItem("accessToken"),
+      },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total && onProgress) {
+          const chunkProgress = progressEvent.loaded / progressEvent.total;
+          const totalProgress =
+            ((uploadedBytes + progressEvent.loaded) / file.size) * 100;
+          onProgress(Math.min(100, Math.round(totalProgress)));
+        }
+      },
+    });
+
+    uploadedBytes += chunk.size;
+  }
+
+  const response = await axios.get(`${API_BASE}/files/complete-upload`, {
     headers: {
       Authorization: localStorage.getItem("accessToken"),
     },
-    onUploadProgress: (progressEvent) => {
-      if (progressEvent.total && onProgress) {
-        const percentCompleted = Math.round(
-          (progressEvent.loaded * 100) / progressEvent.total
-        );
-        onProgress(percentCompleted);
-      }
+    params: {
+      uploadId,
+      totalChunks,
+      filename: file.name,
+      path,
     },
   });
+
+  if (onProgress) onProgress(100);
+
+  return response.data;
 };
 
 export const renameFile = async (path, new_name) => {

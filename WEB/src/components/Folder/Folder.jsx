@@ -1,12 +1,11 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import classes from "./Folder.module.css";
 export default function Dir({ text, icon, contextHandle }) {
-  const icon_path = "/src/assets/icons/folder";
+  const icon_path = "/icons/folder";
   const navigate = useNavigate();
   const location = useLocation();
 
   function openFolder() {
-    console.log(`${location.pathname}/${text}`);
     navigate(text);
   }
 

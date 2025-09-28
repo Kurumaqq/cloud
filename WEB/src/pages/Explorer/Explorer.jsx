@@ -12,7 +12,7 @@ import { createDir, deleteDir } from "../../utils/api/dirs";
 import { deleteFile, renameFile } from "../../utils/api/files";
 import { renameDir } from "../../utils/api/dirs";
 import ConfirmPopup from "../../components/ConfirmPopup/ConfirmPopup";
-import { updateExplorer, uploadFile } from "../../utils/utils";
+import { updateExplorer, updateFiles, uploadFile } from "../../utils/utils";
 
 export let currentSelect = { path: "", type: "" };
 export function Explorer() {
@@ -34,14 +34,13 @@ export function Explorer() {
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
   const [showBlur, setShowBlur] = useState(false);
   const [files, setFiles] = useState([]);
-  const [dirs, setDir] = useState([]);
+  const [dirs, setDirs] = useState([]);
 
   const contextHandle = (e, name, type) => {
     e.preventDefault();
     currentSelect.path = path != "" ? `${path}/${name}` : name;
     currentSelect.type = type;
     setRenamePopupValue(currentSelect.path.split("/").pop());
-    console.log(currentSelect.path);
     setCursorPos({ x: e.pageX, y: e.pageY });
     setShowContext(true);
   };
@@ -49,16 +48,26 @@ export function Explorer() {
   const handleCreateDir = async () => {
     await createDir(`${path}/${createDirPopupValue}`);
     setCreateDirPopupValue("");
-    updateExplorer(path, setDir, setFiles);
+    updateExplorer(path, setDirs, setFiles);
   };
 
   const handleRename = async () => {
     if (currentSelect.type == "file") {
-      await renameFile(currentSelect.path, `${path}/${renamePopupValue}`);
+      await renameFile(
+        currentSelect.path,
+        `${path}/${renamePopupValue}`[0] != "/"
+          ? `${path}/${renamePopupValue}`
+          : renamePopupValue
+      );
     } else if (currentSelect.type == "dir") {
-      await renameDir(currentSelect.path, renamePopupValue);
+      await renameDir(
+        currentSelect.path,
+        `${path}/${renamePopupValue}`[0] != "/"
+          ? `${path}/${renamePopupValue}`
+          : renamePopupValue
+      );
     }
-    updateExplorer(path, setDir, setFiles);
+    updateExplorer(path, setDirs, setFiles);
   };
 
   const handleDelete = async () => {
@@ -67,23 +76,28 @@ export function Explorer() {
     } else if (currentSelect.type == "dir") {
       await deleteDir(currentSelect.path);
     }
-    updateExplorer(path, setDir, setFiles);
+    updateExplorer(path, setDirs, setFiles);
   };
 
   const handleDrop = async (e) => {
     e.preventDefault();
     setIsDragOver(false);
-
     const files = e.dataTransfer.files;
-    Array.from(files).forEach(async (f) => {
-      await uploadFile(f, path, setProgressFiles, setShowProgressFiles);
-      updateExplorer(path, setDir, setFiles);
+    Array.from(files).forEach((f) => {
+      uploadFile(
+        f,
+        path,
+        setProgressFiles,
+        setShowProgressFiles,
+        setDirs,
+        setFiles
+      );
     });
   };
 
   useEffect(() => {
-    updateExplorer(path, setDir, setFiles);
-  }, [path, showBlur]);
+    updateExplorer(path, setDirs, setFiles);
+  }, [path, showBlur, location.pathname]);
 
   return (
     <>
@@ -104,7 +118,7 @@ export function Explorer() {
         <Navbar
           setShowCreateDirPopup={setShowCreateDirPopup}
           setShowBlur={setShowBlur}
-          path={`root/${path}`}
+          path={`root/${decodeURIComponent(path)}`}
         />
         <div className={classes.fileContainer}>
           {dirs.map((f, i) => (

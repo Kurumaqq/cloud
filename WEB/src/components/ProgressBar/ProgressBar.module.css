@@ -9,19 +9,16 @@ li {
   right: 0;
   bottom: 0;
   width: 17rem;
-  max-height: 13.75rem;
   margin: 0 30px 30px 0;
-  overflow-y: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
   border-radius: 15px;
+  backdrop-filter: blur(5px);
   border: hsl(0, 0%, 19%) solid 2px;
 }
 
 .header {
   display: flex;
   align-items: center;
-  padding: 10px;
+  padding: 0 5px 0 5px;
   justify-content: space-between;
   border-bottom: hsl(0, 0%, 19%) solid 2px;
 }
@@ -40,6 +37,10 @@ li {
 
 .Filelist {
   all: unset;
+  max-height: 13rem;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .fileTitle {

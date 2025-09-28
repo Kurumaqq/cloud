@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE = "http://127.0.0.1:8001";
+const API_BASE = "https://api.cloud.kuruma.online/";
 
 export const listDirs = (path) =>
   axios.get(`${API_BASE}/dirs/list/${path}`, {

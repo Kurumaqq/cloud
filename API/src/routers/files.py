@@ -1,4 +1,4 @@
-from fastapi import UploadFile, File, Request, Query, Response
+from fastapi import UploadFile, File, Request, Query, Form
 from fastapi import APIRouter, UploadFile, Request
 from fastapi.responses import StreamingResponse, FileResponse
 from src.schemas.files import *
@@ -24,14 +24,28 @@ async def read_file(path: str, request: Request) -> ReadFileResponse:
 async def get_file(path: str, request: Request) -> StreamingResponse:
     return await services.get_file(path, request)
 
-@router.post('/upload', response_model=UploadFileResponse)
+@router.post('/upload')
 async def upload_files(
+    request: Request,
     file: UploadFile = File(...),
-    path: str = Query(""),
-    request: Request = None
-) -> UploadFileResponse:
-    return await services.upload_file(file, path, request)
+    uploadId: str = Form(...),
+    chunkIndex: int = Form(...),
+    totalChunks: int = Form(...),
+    filename: str = Form(...),
+    path: str = Form("/")
+):
+    return await services.upload_chunk(request, file, uploadId, chunkIndex, totalChunks, filename, path)
 
+
+@router.get('/complete-upload')
+async def complete_upload(
+    request: Request,
+    uploadId: str = Query(...),
+    totalChunks: int = Query(...),
+    filename: str = Query(...),
+    path: str = Query("/")
+):
+    return await services.complete_upload(request, uploadId, totalChunks, filename, path)
 
 @router.post('/rename', response_model=RenameFileResponse)
 async def rename_file(path: str, new_name: str, request: Request) -> RenameFileResponse:
