@@ -1,7 +1,7 @@
 from src.utils import check_path, check_file, check_paths, check_token, chunk_generator, unique_name, copy_file_thread
 from fastapi.responses import FileResponse, StreamingResponse
 from src.errors.dirs import NotDirHttpError
-from fastapi import UploadFile, Request, Form
+from fastapi import UploadFile, Request, Form, Query
 from mimetypes import guess_type
 from src.schemas.files import *
 from src.errors.files import *
@@ -42,10 +42,9 @@ async def list_files(path: str, request: Request) -> ListFilesResponse:
             message=str(e)
         )
 
-async def download_file(path: str, request: Request) -> FileResponse | DownloadFileErrorResponse:
+async def download_file(path: str, token: str = Query(...)) -> FileResponse | DownloadFileErrorResponse:
     try:
-        token = request.headers['Authorization']
-        check_token(token)
+        check_token(token) 
 
         src_file = resolve_path(path)
         check_path(path)
@@ -53,12 +52,12 @@ async def download_file(path: str, request: Request) -> FileResponse | DownloadF
 
         return FileResponse(
             path=str(src_file),
-            media_type='application/octet-stream',
-            filename=src_file.name,
+            media_type="application/octet-stream",
+            filename=src_file.name,  
         )
     except Exception as e:
         return DownloadFileErrorResponse(
-            status='error',
+            status="error",
             message=str(e)
         )
 

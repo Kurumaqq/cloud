@@ -9,6 +9,18 @@ export const listFiles = (path) =>
     },
   });
 
+export const getFile = async (path) => {
+  const response = await axios.get(`${API_BASE}/files/get/${path}`, {
+    headers: {
+      Authorization: localStorage.getItem("accessToken"),
+    },
+    responseType: "blob",
+  });
+  const blob = response.data;
+  const url = URL.createObjectURL(blob);
+  return url;
+};
+
 const CHUNK_SIZE = 5 * 1024 * 1024;
 
 export const uploadFileApi = async (path, file, onProgress) => {
@@ -87,17 +99,10 @@ export const deleteFile = async (path) => {
 };
 
 export const downloadFile = async (path) => {
-  const response = await axios.get(`/files/download/${path}`, {
-    headers: {
-      Authorization: localStorage.getItem("accessToken") || "",
-    },
-    responseType: "blob",
-  });
-
-  const url = URL.createObjectURL(response.data);
   const a = document.createElement("a");
-  a.href = url;
+  a.href = `${API_BASE}/files/download/${path}?token=${localStorage.getItem(
+    "accessToken"
+  )}`;
   a.download = path.split("/").pop();
   a.click();
-  URL.revokeObjectURL(url);
 };

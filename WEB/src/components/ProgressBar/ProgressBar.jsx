@@ -21,6 +21,7 @@ export default function ProgressBar({
               }}
             >
               <img
+                draggable={false}
                 className={classes.closeIcon}
                 src={"/icons/close.svg"}
                 alt="close"
@@ -36,6 +37,7 @@ export default function ProgressBar({
                   <div className={classes.fileProgressBar}>
                     <div className={classes.fileTitle}>
                       <img
+                        draggable={false}
                         className={classes.fileIcon}
                         src={`${iconDir}/${e.name.split(".").pop()}.svg`}
                         alt="file"

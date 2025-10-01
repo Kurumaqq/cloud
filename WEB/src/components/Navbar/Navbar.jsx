@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import classes from "./Navbar.module.css";
 import ButtonNav from "./ButtonNav";
 import { useNavigate } from "react-router-dom";
-import { createDir } from "../../utils/api/dirs";
 
 export default function Navbar({ path, setShowCreateDirPopup, setShowBlur }) {
   const [pathValue, setPath] = useState(path);

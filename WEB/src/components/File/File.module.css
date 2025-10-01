@@ -18,12 +18,20 @@
   background-color: #013a63;
 }
 
-.file img {
+.icon {
   width: 40px;
   height: 40px;
   margin-bottom: 8px;
 }
 
+.pic {
+  width: 95px;
+  height: 80px;
+  border-radius: 5px;
+  margin-bottom: 8px;
+  object-fit: cover;
+  overflow: hidden;
+}
 .filename {
   font-size: 13px;
   color: white;

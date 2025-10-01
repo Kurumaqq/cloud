@@ -9,10 +9,17 @@ import ContextMenu from "../../components/ContextMenu/ContextMenu";
 import NamePopup from "../../components/NamePopup/NamePopup";
 import BlurBg from "../../components/Blurbg/Blurbg";
 import { createDir, deleteDir } from "../../utils/api/dirs";
-import { deleteFile, renameFile } from "../../utils/api/files";
+import { deleteFile, getFile, renameFile } from "../../utils/api/files";
 import { renameDir } from "../../utils/api/dirs";
 import ConfirmPopup from "../../components/ConfirmPopup/ConfirmPopup";
-import { updateExplorer, updateFiles, uploadFile } from "../../utils/utils";
+import FullScreenImg from "../../components/FullScreenImg/FullScreenImg";
+import {
+  getIcon,
+  updateExplorer,
+  updateFiles,
+  uploadFile,
+} from "../../utils/utils";
+import FullScreenVideo from "../../components/FullScreenVideo/FullScreenVideo";
 
 export let currentSelect = { path: "", type: "" };
 export function Explorer() {
@@ -21,7 +28,6 @@ export function Explorer() {
     .replace("/root/", "")
     .replace(/\/{2,}/g, "/")
     .replace("/root", "");
-
   const [progressFiles, setProgressFiles] = useState([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [showProgressFiles, setShowProgressFiles] = useState(false);
@@ -31,6 +37,11 @@ export function Explorer() {
   const [showCreateDirPopup, setShowCreateDirPopup] = useState(false);
   const [renamePopupValue, setRenamePopupValue] = useState(currentSelect.path);
   const [createDirPopupValue, setCreateDirPopupValue] = useState("");
+  const [showFullScreenImg, setShowFullScreenImg] = useState(false);
+  const [showFullScreenVideo, setShowFullScreenVideo] = useState(false);
+  const [fullScreenImgSrc, setFullScreenImgSrc] = useState("");
+  const [fullScreenVideoSrc, setFullScreenVideoSrc] = useState("");
+  const [fullScreenImgName, setFullScreenImgName] = useState("");
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
   const [showBlur, setShowBlur] = useState(false);
   const [files, setFiles] = useState([]);
@@ -49,6 +60,26 @@ export function Explorer() {
     await createDir(`${path}/${createDirPopupValue}`);
     setCreateDirPopupValue("");
     updateExplorer(path, setDirs, setFiles);
+  };
+
+  const handleOnClickFile = (filename) => {
+    const picExt = ["jpg", "jpeg", "png", "gif", "bmp", "svg"];
+    const videoExt = ["mp4", "webm", "ogg", "mkv"];
+    const ext = filename.split(".").pop().toLowerCase();
+    if (picExt.includes(ext)) {
+      setFullScreenImgSrc("");
+      setFullScreenImgName(filename);
+      setShowBlur(true);
+      setShowFullScreenImg(true);
+      getIcon(filename, path).then(setFullScreenImgSrc);
+    } else if (videoExt.includes(ext)) {
+      setFullScreenVideoSrc("");
+      setFullScreenImgName(filename);
+      setShowBlur(true);
+      setShowFullScreenVideo(true);
+      const curr_path = path ? path + "/" : "";
+      getFile(`${curr_path}${filename}`).then(setFullScreenVideoSrc);
+    }
   };
 
   const handleRename = async () => {
@@ -83,22 +114,32 @@ export function Explorer() {
     e.preventDefault();
     setIsDragOver(false);
     const files = e.dataTransfer.files;
-    Array.from(files).forEach((f) => {
-      uploadFile(
-        f,
-        path,
-        setProgressFiles,
-        setShowProgressFiles,
-        setDirs,
-        setFiles
-      );
-    });
+    await Promise.all(
+      Array.from(files).map((f) =>
+        uploadFile(
+          f,
+          path,
+          setProgressFiles,
+          setShowProgressFiles,
+          setDirs,
+          setFiles
+        )
+      )
+    );
+    updateExplorer(path, setDirs, setFiles);
   };
 
   useEffect(() => {
-    updateExplorer(path, setDirs, setFiles);
-  }, [path, showBlur, location.pathname]);
+    if (showFullScreenImg || showFullScreenVideo) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+  }, [showFullScreenImg, showFullScreenVideo]);
 
+  useEffect(() => {
+    updateExplorer(path, setDirs, setFiles);
+  }, [path, location.pathname]);
   return (
     <>
       <BlurBg show={showBlur}></BlurBg>
@@ -132,9 +173,10 @@ export function Explorer() {
           {files.map((f, i) => (
             <File
               contextHandle={(e) => contextHandle(e, f.name, "file")}
+              onClick={() => handleOnClickFile(f.name)}
               key={i}
-              text={f.name}
-              icon={`${f.name.split(".").pop()}.svg`}
+              filename={f.name}
+              icon={f.icon}
             />
           ))}
         </div>
@@ -180,6 +222,24 @@ export function Explorer() {
         show={showContext}
         setShowConfirmPopup={setShowConfirmPopup}
       ></ContextMenu>
+      <FullScreenImg
+        src={fullScreenImgSrc}
+        setSrc={setFullScreenImgSrc}
+        show={showFullScreenImg}
+        setShow={setShowFullScreenImg}
+        setShowBlur={setShowBlur}
+        files={files}
+        name={fullScreenImgName}
+        setName={setFullScreenImgName}
+        setFullScreenImgSrc={setFullScreenImgSrc}
+        path={path}
+      ></FullScreenImg>
+      <FullScreenVideo
+        src={fullScreenVideoSrc}
+        setShow={setShowFullScreenVideo}
+        setShowBlur={setShowBlur}
+        show={showFullScreenVideo}
+      />
     </>
   );
 }
