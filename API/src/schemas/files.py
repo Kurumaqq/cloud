@@ -42,3 +42,15 @@ class CopyFileResponse(BaseModel):
     new_path: Optional[str]= None
     name: Optional[str] = None
     message: Optional[str]
+
+class MoveFileResponse(BaseModel):
+    status: Literal['ok', 'error']
+    old_path: Optional[str] = None
+    new_path: Optional[str] = None
+    name: Optional[str] = None
+    message: Optional[str] = None
+
+class UploadChunkResponse(BaseModel):
+    status: Literal['ok']
+    chunkIndex: Optional[int] = None
+    message: Optional[str] = None

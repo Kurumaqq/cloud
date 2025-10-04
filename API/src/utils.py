@@ -1,30 +1,37 @@
 from src.errors.combined import InvalidPathHttpError, PathTraversalHttpError, InvalidToken
 from src.errors.files import FileNotFoundHttpError, NotFileHttpError
 from src.errors.dirs import DirNotFoundHttpError, NotDirHttpError
+from fastapi.exceptions import HTTPException
 from src.config import Config
 from pathlib import Path
+from fastapi import Request
 import asyncio
 import jwt
 import bcrypt
 import shutil
+from jwt import decode, exceptions
 
 config = Config()
 
+
 def check_path(path: str) -> bool:
     if '..' in path or Path(path).is_absolute():
-        raise InvalidPathHttpError(path)
+        raise PathTraversalHttpError(path)
 
     full_path = (Path(config.base_dir) / path).resolve()
     base_path = Path(config.base_dir).resolve()
     if not str(full_path).startswith(str(base_path)):
-        raise PathTraversalHttpError(path)
+        raise InvalidPathHttpError(path)
 
     return True
+
 
 def check_paths(paths: list[str]) -> bool:
-    for path in paths: check_path(path)
+    for path in paths:
+        check_path(path)
 
     return True
+
 
 def check_file(path: Path) -> bool:
     if not path.exists():
@@ -34,42 +41,53 @@ def check_file(path: Path) -> bool:
 
     return True
 
+
 def check_dir(path: Path) -> bool:
     if not path.exists():
-        raise DirNotFoundHttpError(path)   
+        raise DirNotFoundHttpError(path)
     if not path.is_dir():
         raise NotDirHttpError(path)
 
     return True
 
-def check_token(token):
+
+def check_token(request: Request | str):
+    if isinstance(request, str):
+        token = request
+    elif 'Authorization' in request.headers:
+        token = request.headers['Authorization']
+    else:
+        raise HTTPException(401, detail="Invalid token")
     return decode_jwt(token)
 
-async def chunk_generator(path, chunk_size):
-            with open(path, "rb") as f:
-                while True:
-                    chunk = f.read(chunk_size)
-                    if not chunk: break
-                    yield chunk
 
-     
+async def chunk_generator(path, chunk_size):
+    with open(path, "rb") as f:
+        while True:
+            chunk = f.read(chunk_size)
+            if not chunk:
+                break
+            yield chunk
+
+
 def size_convert(value: int):
-     types = {
-         -1: 'bytes ',
-          0: 'KB',
-          1: 'MB',
-          2: 'GB'
-     }
-     for i in range(3):
+    types = {
+        -1: 'bytes ',
+        0: 'KB',
+        1: 'MB',
+        2: 'GB'
+    }
+    for i in range(3):
         print(i)
-        if value / 1024 > 1: 
+        if value / 1024 > 1:
             value /= 1024
             print(value)
-        else: 
+        else:
             print(i)
             print(value)
             value = int(value * 100) / 100
             return {'size': value, 'type': types[i-1]}
+
 
 def unique_name(dst: Path, name: str, t: str) -> Path:
     target_path = dst / name
@@ -88,11 +106,13 @@ def unique_name(dst: Path, name: str, t: str) -> Path:
         counter += 1
     return target_path
 
+
 async def copy_dir_thread(src: Path, dst: Path):
     await asyncio.to_thread(shutil.copytree, src, dst)
     return dst
 
-async def copy_file_thread(src: Path, dst: Path):
+
+async def copy_thread(src: Path, dst: Path):
     await asyncio.to_thread(shutil.copy, src, dst)
     return dst
 
@@ -100,8 +120,14 @@ async def copy_file_thread(src: Path, dst: Path):
 def encode_jwt(payload: dict):
     return jwt.encode(payload, config.secret_key, algorithm="RS256")
 
+
 def decode_jwt(token: str):
-    return jwt.decode(token, config.public_key, algorithms=["RS256"])
+    try:
+        return decode(token, config.public_key.encode("utf-8"), algorithms=["RS256"])
+    except exceptions.DecodeError as e:
+        print("JWT DecodeError:", e)
+        raise
+
 
 def check_password(password: str, hashed_password: str):
     return bcrypt.checkpw(password.encode(), hashed_password)

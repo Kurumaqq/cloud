@@ -1,6 +1,8 @@
 import axios from "axios";
+import config from "../../../public/config.json";
 
-const API_BASE = "https://api.cloud.kuruma.online";
+const API_BASE = config.APIURL;
+const CHUNK_SIZE = 5 * 1024 * 1024;
 
 export const listFiles = (path) =>
   axios.get(`${API_BASE}/files/list/${path}`, {
@@ -10,18 +12,71 @@ export const listFiles = (path) =>
   });
 
 export const getFile = async (path) => {
-  const response = await axios.get(`${API_BASE}/files/get/${path}`, {
-    headers: {
-      Authorization: localStorage.getItem("accessToken"),
-    },
-    responseType: "blob",
-  });
+  const response = await axios.get(
+    `${API_BASE}/files/get/${path}?token=${localStorage.getItem(
+      "accessToken"
+    )}`,
+    {
+      responseType: "blob",
+    }
+  );
   const blob = response.data;
   const url = URL.createObjectURL(blob);
   return url;
 };
 
-const CHUNK_SIZE = 5 * 1024 * 1024;
+export const copyFile = async (path, copy_path) => {
+  await axios.post(
+    `${API_BASE}/files/copy?file_path=${path}&copy_path=${copy_path}`,
+    {},
+    {
+      headers: {
+        Authorization: localStorage.getItem("accessToken"),
+      },
+    }
+  );
+};
+
+export const getVideoThumbnail = async (path, time = 0.5) => {
+  // закодируем весь путь, чтобы слэши стали %2F
+  const encodedPath = encodeURIComponent(path);
+
+  const response = await axios.get(
+    `${API_BASE}/files/thumbnail/${encodedPath}?time=${time}`,
+    {
+      headers: {
+        Authorization: localStorage.getItem("accessToken"),
+      },
+      responseType: "blob",
+    }
+  );
+
+  return URL.createObjectURL(response.data);
+};
+
+export const moveFile = async (path, move_path) => {
+  console.log("Запрос на перемещение файла:", { path, move_path });
+
+  try {
+    const response = await axios.post(
+      `${API_BASE}/files/move?path=${encodeURIComponent(
+        path
+      )}&move_path=${encodeURIComponent(move_path)}`,
+      {},
+      {
+        headers: {
+          Authorization: localStorage.getItem("accessToken"),
+        },
+      }
+    );
+
+    console.log("Ответ от сервера:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Ошибка при перемещении файла:", error);
+    throw error;
+  }
+};
 
 export const uploadFileApi = async (path, file, onProgress) => {
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
@@ -90,12 +145,16 @@ export const renameFile = async (path, new_name) => {
 };
 
 export const deleteFile = async (path) => {
-  return axios.delete(`${API_BASE}/files/delete`, {
-    params: { path: path },
-    headers: {
-      Authorization: localStorage.getItem("accessToken"),
-    },
-  });
+  try {
+    await axios.delete(`${API_BASE}/files/delete`, {
+      params: { path },
+      headers: {
+        Authorization: localStorage.getItem("accessToken"),
+      },
+    });
+  } catch (err) {
+    console.error("Ошибка deleteFile:", err);
+  }
 };
 
 export const downloadFile = async (path) => {

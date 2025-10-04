@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import classes from "./Login.module.css";
 import axios from "axios";
+import config from "../../../public/config.json";
 
 export default function LoginForm() {
   const [username, setUsername] = useState("");
@@ -10,7 +11,7 @@ export default function LoginForm() {
 
   const handleClick = () => {
     axios
-      .post("https://api.cloud.kuruma.online/login", {
+      .post(`${config.APIURL}/login`, {
         username: username,
         password: password,
       })

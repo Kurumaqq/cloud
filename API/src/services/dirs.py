@@ -12,14 +12,12 @@ from urllib.parse import unquote
 config = Config()
 
 def resolve_path(path: str) -> Path:
-    """Декодируем URL и возвращаем абсолютный Path внутри base_dir"""
     decoded_path = unquote(path)
     return (Path(config.base_dir) / decoded_path).resolve()
 
 async def list_dirs(path: str, request: Request) -> ListDirsResponse:
-    try:
-        token = request.headers['Authorization']
-        check_token(token)
+        if path and path[0] == '/': path = path[1:]
+        check_token(request)
 
         src_dir = resolve_path(path)
         check_path(path)
@@ -31,61 +29,45 @@ async def list_dirs(path: str, request: Request) -> ListDirsResponse:
             dirs=dirs,
             message='Dirs listed successfully.'
         )
-    except Exception as e:
-        return ListDirsResponse(
-            status='error',
-            message=str(e)
-        )
 
 async def size_dir(path: str, request: Request) -> SizeDirResponse:
-    try:
-        token = request.headers['Authorization']
-        check_token(token)
+    if path and path[0] == '/': path = path[1:]
+    check_token(request)
 
-        src_dir = resolve_path(path)
-        check_path(path)
-        check_dir(src_dir)
+    src_dir = resolve_path(path)
+    check_path(path)
+    check_dir(src_dir)
 
-        size = 0
-        for f in src_dir.glob('**/*'):
-            if f.is_file():
-                if platform.system() == 'Linux':
-                    size += f.stat().st_blocks
-                else:
-                    size += f.stat().st_size
+    size = 0
+    for f in src_dir.glob('**/*'):
+        if f.is_file():
+            if platform.system() == 'Linux':
+                size += f.stat().st_blocks
+            else:
+                    ize += f.stat().st_size
 
-        result = size_convert(size)
+    result = size_convert(size)
 
-        return SizeDirResponse(
-            status='ok',
-            size=result['size'],
-            type=result['type'],
-            message=f'Directory {src_dir.name} size calculated.'
-        )
-    except Exception as e:
-        return SizeDirResponse(
-            status='error',
-            message=str(e)
-        )
+    return SizeDirResponse(
+        status='ok',
+        size=result['size'],
+        type=result['type'],
+        message=f'Directory {src_dir.name} size calculated.'
+    )
+
 
 async def create_dir(path: str, request: Request) -> CreateDirResponse:
-    try:
-        token = request.headers['Authorization']
-        check_token(token)
+    if path and path[0] == '/': path = path[1:]
+    check_token(request)
 
-        src_dir = resolve_path(path)
-        check_path(path)
+    src_dir = resolve_path(path)
+    check_path(path)
 
-        src_dir.mkdir(parents=True, exist_ok=False)
+    src_dir.mkdir(parents=True, exist_ok=False)
 
-        return CreateDirResponse(
-            status='ok',
-            message=f'Directory {src_dir.name} created successfully.'
-        )
-    except Exception as e:
-        return CreateDirResponse(
-            status='error',
-            message=str(e)
+    return CreateDirResponse(
+        status='ok',
+        message=f'Directory {src_dir.name} created successfully.'
         )
 
 async def rename_dir(path: str, new_name: str, request: Request) -> RenameDirResponse:

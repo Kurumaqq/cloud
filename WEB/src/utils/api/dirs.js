@@ -1,6 +1,7 @@
 import axios from "axios";
+import config from "../../../public/config.json";
 
-const API_BASE = "https://api.cloud.kuruma.online";
+const API_BASE = config.APIURL;
 
 export const listDirs = (path) =>
   axios.get(`${API_BASE}/dirs/list/${path}`, {
@@ -10,7 +11,7 @@ export const listDirs = (path) =>
   });
 
 export const createDir = async (path) => {
-  if (path[0] === "/") path = path.slice(1);
+  //   if (path[0] === "/") path = path.slice(1);
   return axios.post(
     `${API_BASE}/dirs/create`,
     {},

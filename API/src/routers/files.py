@@ -4,6 +4,7 @@ from fastapi.responses import StreamingResponse, FileResponse
 from src.schemas.files import *
 from src.config import Config
 from src import services
+import os
 
 router = APIRouter(prefix='/files', tags=['files'])
 config = Config()
@@ -21,8 +22,8 @@ async def read_file(path: str, request: Request) -> ReadFileResponse:
     return await services.read_file(path, request)
 
 @router.get('/get/{path:path}')
-async def get_file(path: str, request: Request) -> StreamingResponse:
-    return await services.get_file(path, request)
+async def get_file(path: str, request: Request, token: str, ) -> StreamingResponse:
+    return await services.get_file(path, request, token)
 
 @router.post('/upload')
 async def upload_files(
@@ -30,11 +31,8 @@ async def upload_files(
     file: UploadFile = File(...),
     uploadId: str = Form(...),
     chunkIndex: int = Form(...),
-    totalChunks: int = Form(...),
-    filename: str = Form(...),
-    path: str = Form("/")
 ):
-    return await services.upload_chunk(request, file, uploadId, chunkIndex, totalChunks, filename, path)
+    return await services.upload_chunk(request, file, uploadId, chunkIndex)
 
 
 @router.get('/complete-upload')
@@ -47,9 +45,20 @@ async def complete_upload(
 ):
     return await services.complete_upload(request, uploadId, totalChunks, filename, path)
 
+@router.get("/thumbnail/{path:path}")
+async def thumbnail(path: str, request: Request, time: float = 0.5):
+    print("Path from URL:", path)
+    print("Resolved file path:", path)
+    print("Exists?", os.path.exists(path))
+    return await services.generate_video_thumbnail(path, request, time)
+
 @router.post('/rename', response_model=RenameFileResponse)
 async def rename_file(path: str, new_name: str, request: Request) -> RenameFileResponse:
     return await services.rename_file(path, new_name, request)
+
+@router.post('/move', response_model=MoveFileResponse)
+async def move_file(path: str, move_path: str, request: Request) -> MoveFileResponse:
+    return await services.move_file(path, move_path, request)
 
 @router.post('/copy', response_model=CopyFileResponse)
 async def copy_file(file_path: str, copy_path: str, request: Request) -> CopyFileResponse:

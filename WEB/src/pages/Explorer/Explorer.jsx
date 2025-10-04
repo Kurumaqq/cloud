@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
@@ -13,13 +14,10 @@ import { deleteFile, getFile, renameFile } from "../../utils/api/files";
 import { renameDir } from "../../utils/api/dirs";
 import ConfirmPopup from "../../components/ConfirmPopup/ConfirmPopup";
 import FullScreenImg from "../../components/FullScreenImg/FullScreenImg";
-import {
-  getIcon,
-  updateExplorer,
-  updateFiles,
-  uploadFile,
-} from "../../utils/utils";
 import FullScreenVideo from "../../components/FullScreenVideo/FullScreenVideo";
+import config from "../../../public/config.json";
+import { getIcon, updateExplorer, uploadFile } from "../../utils/utils";
+// import { useNavigate } from "react-router-dom";
 
 export let currentSelect = { path: "", type: "" };
 export function Explorer() {
@@ -28,6 +26,7 @@ export function Explorer() {
     .replace("/root/", "")
     .replace(/\/{2,}/g, "/")
     .replace("/root", "");
+  const navigate = useNavigate();
   const [progressFiles, setProgressFiles] = useState([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [showProgressFiles, setShowProgressFiles] = useState(false);
@@ -58,8 +57,9 @@ export function Explorer() {
 
   const handleCreateDir = async () => {
     await createDir(`${path}/${createDirPopupValue}`);
+    console.log(a);
     setCreateDirPopupValue("");
-    updateExplorer(path, setDirs, setFiles);
+    updateExplorer(path, setDirs, setFiles, files, navigate);
   };
 
   const handleOnClickFile = (filename) => {
@@ -78,7 +78,12 @@ export function Explorer() {
       setShowBlur(true);
       setShowFullScreenVideo(true);
       const curr_path = path ? path + "/" : "";
-      getFile(`${curr_path}${filename}`).then(setFullScreenVideoSrc);
+      const videoUrl = `${
+        config.APIURL
+      }/files/get/${curr_path}${filename}?token=${localStorage.getItem(
+        "accessToken"
+      )}`;
+      setFullScreenVideoSrc(videoUrl);
     }
   };
 
@@ -98,7 +103,7 @@ export function Explorer() {
           : renamePopupValue
       );
     }
-    updateExplorer(path, setDirs, setFiles);
+    updateExplorer(path, setDirs, setFiles, files, navigate);
   };
 
   const handleDelete = async () => {
@@ -107,7 +112,7 @@ export function Explorer() {
     } else if (currentSelect.type == "dir") {
       await deleteDir(currentSelect.path);
     }
-    updateExplorer(path, setDirs, setFiles);
+    updateExplorer(path, setDirs, setFiles, files, navigate);
   };
 
   const handleDrop = async (e) => {
@@ -126,7 +131,7 @@ export function Explorer() {
         )
       )
     );
-    updateExplorer(path, setDirs, setFiles);
+    updateExplorer(path, setDirs, setFiles, files, navigate);
   };
 
   useEffect(() => {
@@ -138,8 +143,8 @@ export function Explorer() {
   }, [showFullScreenImg, showFullScreenVideo]);
 
   useEffect(() => {
-    updateExplorer(path, setDirs, setFiles);
-  }, [path, location.pathname]);
+    updateExplorer(path, setDirs, setFiles, files, navigate);
+  }, [location.pathname]);
   return (
     <>
       <BlurBg show={showBlur}></BlurBg>
@@ -166,8 +171,12 @@ export function Explorer() {
             <Dir
               contextHandle={(e) => contextHandle(e, f.name, "dir")}
               key={i}
-              text={f.name}
+              path={path}
+              name={f.name}
               icon={f.icon}
+              setDirs={setDirs}
+              setFiles={setFiles}
+              files={files}
             />
           ))}
           {files.map((f, i) => (
@@ -175,6 +184,7 @@ export function Explorer() {
               contextHandle={(e) => contextHandle(e, f.name, "file")}
               onClick={() => handleOnClickFile(f.name)}
               key={i}
+              path={path}
               filename={f.name}
               icon={f.icon}
             />
