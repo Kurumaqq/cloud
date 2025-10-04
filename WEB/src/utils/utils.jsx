@@ -108,7 +108,7 @@ export const getIcon = async (filename, path = "") => {
   if (picExt.includes(ext)) {
     return await getFile(`${path}${filename}`);
   } else if (videoExt.includes(ext)) {
-    return `${config.APIURL}/files/thumbnail/${path}${filename}?time=0.5`;
+    return await `${config.APIURL}/files/thumbnail/${path}${filename}?time=0.5`;
   } else {
     return `/icons/files/${ext}.svg`;
   }
