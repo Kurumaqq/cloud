@@ -38,11 +38,8 @@ export const copyFile = async (path, copy_path) => {
 };
 
 export const getVideoThumbnail = async (path, time = 0.5) => {
-  // закодируем весь путь, чтобы слэши стали %2F
-  const encodedPath = encodeURIComponent(path);
-
   const response = await axios.get(
-    `${API_BASE}/files/thumbnail/${encodedPath}?time=${time}`,
+    `${API_BASE}/files/thumbnail/${path}?time=${time}`,
     {
       headers: {
         Authorization: localStorage.getItem("accessToken"),

@@ -3,25 +3,21 @@ from src.utils import (
     check_file,
     check_paths,
     check_token,
-    chunk_generator,
     unique_name,
     copy_thread,
+    resolve_path
 )
 from fastapi.responses import FileResponse, StreamingResponse
 from src.errors.dirs import NotDirHttpError
 from fastapi import UploadFile, Request, Form, Query
-from mimetypes import guess_type
 from src.schemas.files import *
 from src.errors.files import *
 from src.config import Config
 from pathlib import Path
-import asyncio
 import shutil
 from PIL import Image
 import os
 from urllib.parse import unquote
-from fastapi import HTTPException
-from fastapi import FastAPI, HTTPException
 from moviepy import VideoFileClip
 from io import BytesIO
 import os
@@ -29,15 +25,7 @@ import os
 
 config = Config()
 
-
-def resolve_path(path: str) -> Path:
-    decoded_path = unquote(path)
-    return (Path(config.base_dir) / decoded_path).resolve()
-
-
 async def list_files(path: str, request: Request) -> ListFilesResponse:
-    if path and path[0] == '/':
-        path = path[1:]
     check_token(request)
 
     src_dir = resolve_path(path)
@@ -49,15 +37,11 @@ async def list_files(path: str, request: Request) -> ListFilesResponse:
     files = [f.name for f in src_dir.iterdir() if f.is_file()]
 
     return ListFilesResponse(
-        status="ok",
-        files=files,
-        message="Files listed successfully."
+        status="ok", files=files, message="Files listed successfully."
     )
 
 
 async def move_file(path: str, move_path: str, request: Request) -> MoveFileResponse:
-    if path[0] == '/': path = path[1:]
-    if move_path[0] == '/': move_path = move_path[1:]
     check_token(request)
 
     src_file = resolve_path(path)
@@ -81,7 +65,6 @@ async def move_file(path: str, move_path: str, request: Request) -> MoveFileResp
 
 
 async def download_file(path: str, token: str = Query(...)) -> FileResponse:
-    if path[0] == '/': path = path[1:]
     check_token(token)
 
     src_file = resolve_path(path)
@@ -96,7 +79,6 @@ async def download_file(path: str, token: str = Query(...)) -> FileResponse:
 
 
 async def delete_file(path: str, request: Request) -> DeleteFilesResponse:
-    if path[0] == '/': path = path[1:]
     check_token(request)
 
     src_file = resolve_path(path)
@@ -111,13 +93,14 @@ async def delete_file(path: str, request: Request) -> DeleteFilesResponse:
         message=f"File {src_file.name} deleted successfully.",
     )
 
+
 async def upload_chunk(
     request: Request,
     file: UploadFile,
     uploadId: str = Form(...),
     chunkIndex: int = Form(...),
 ):
-    # check_token(request)
+    check_token(request)
 
     temp_dir = Path("tmp") / uploadId
     temp_dir.mkdir(parents=True, exist_ok=True)
@@ -128,10 +111,8 @@ async def upload_chunk(
             f.write(content)
 
     return UploadChunkResponse(
-        status="ok", 
-        chunkIndex=chunkIndex, 
-        message="Upload chunk is successfull"
-        )
+        status="ok", chunkIndex=chunkIndex, message="Upload chunk is successfull"
+    )
 
 
 async def complete_upload(
@@ -141,8 +122,7 @@ async def complete_upload(
     filename: str = Form(...),
     path: str = Form("/"),
 ):
-    token = request.headers.get("Authorization")
-    check_token(token)
+    check_token(request)
 
     target_dir = resolve_path(path)
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -150,7 +130,6 @@ async def complete_upload(
 
     temp_dir = Path("tmp") / uploadId
     temp_dir.mkdir(parents=True, exist_ok=True)
-    print(f"Temporary directory: {temp_dir}")
 
     with open(target_file, "wb") as outfile:
         for i in range(totalChunks):
@@ -162,100 +141,77 @@ async def complete_upload(
 
     shutil.rmtree(temp_dir)
 
-    return {
-        "status": "ok",
-        "filename": filename,
-        "message": f"File {filename} uploaded successfully to {path}",
-    }
+    return UploadChunkResponse(
+        status="ok", filename=filename, message="Upload chunk is successfull"
+    )
 
 
 async def read_file(path: str, request: Request) -> ReadFileResponse:
-    try:
-        token = request.headers["Authorization"]
-        check_token(token)
-        print(path)
-        src_file = resolve_path(path)
-        print(src_file)
-        check_path(path)
-        check_file(src_file)
+    check_token(request)
+    src_file = resolve_path(path)
+    check_path(path)
+    check_file(src_file)
 
-        with open(src_file, "r", encoding="utf-8") as f:
-            data = f.read()
+    with open(src_file, "r", encoding="utf-8") as f:
+        data = f.read()
 
-        return ReadFileResponse(
-            status="ok",
-            content=data,
-            message=f"File {src_file.name} read successfully.",
-        )
-    except Exception as e:
-        return ReadFileResponse(status="error", message=str(e))
+    return ReadFileResponse(
+        status="ok",
+        content=data,
+        message=f"File {src_file.name} read successfully.",
+    )
 
 
 async def rename_file(path: str, new_name: str, request: Request) -> RenameFileResponse:
-    try:
-        token = request.headers["Authorization"]
-        check_token(token)
+    check_token(request)
 
-        decoded_path = unquote(path)
-        decoded_new_name = unquote(new_name)
+    decoded_path = unquote(path)
+    decoded_new_name = unquote(new_name)
 
-        src_file = resolve_path(decoded_path)
-        old_name = src_file.name
-        old_ext = Path(old_name).suffix
+    src_file = resolve_path(decoded_path)
+    old_name = src_file.name
+    old_ext = Path(old_name).suffix
 
-        new_name_only = Path(decoded_new_name).name
-        if "." not in new_name_only:
-            new_name_only += old_ext
+    new_name_only = Path(decoded_new_name).name
+    if "." not in new_name_only:
+        new_name_only += old_ext
 
-        dst_file = src_file.parent / new_name_only
+    dst_file = src_file.parent / new_name_only
 
-        check_paths([decoded_path, new_name_only])
-        check_file(src_file)
+    check_paths([decoded_path, new_name_only])
+    check_file(src_file)
 
-        src_file.rename(dst_file)
+    src_file.rename(dst_file)
 
-        return RenameFileResponse(
-            status="ok",
-            old_name=old_name,
-            new_name=new_name_only,
-            message=f"File {old_name} renamed to {new_name_only} successfully.",
-        )
-    except Exception as e:
-        return RenameFileResponse(
-            status="error",
-            old_name=old_name if "old_name" in locals() else "",
-            new_name=new_name if "new_name" in locals() else "",
-            message=str(e),
-        )
+    return RenameFileResponse(
+        status="ok",
+        old_name=old_name,
+        new_name=new_name_only,
+        message=f"File {old_name} renamed to {new_name_only} successfully.",
+    )
 
 
 async def copy_file(
     file_path: str, copy_path: str, request: Request
 ) -> CopyFileResponse:
-    try:
-        token = request.headers["Authorization"]
-        check_token(token)
+    check_token(request)
 
-        src_file = resolve_path(file_path)
-        dst_file = resolve_path(copy_path)
+    src_file = resolve_path(file_path)
+    dst_file = resolve_path(copy_path)
 
-        check_paths([file_path, copy_path])
-        check_file(src_file)
+    check_paths([file_path, copy_path])
+    check_file(src_file)
 
-        target_path = unique_name(dst_file, src_file.name, "file")
-        await copy_thread(src_file, target_path)
+    target_path = unique_name(dst_file, src_file.name, "file")
+    await copy_thread(src_file, target_path)
 
-        return CopyFileResponse(
-            status="ok",
-            old_path=file_path,
-            new_path=copy_path,
-            name=target_path.name,
-            message=f"File {src_file.name} copied to {copy_path} successfully.",
-        )
-    except Exception as e:
-        return CopyFileResponse(
-            status="error", old_path=file_path, new_path=copy_path, message=str(e)
-        )
+    return CopyFileResponse(
+        status="ok",
+        old_path=file_path,
+        new_path=copy_path,
+        name=target_path.name,
+        message=f"File {src_file.name} copied to {copy_path} successfully.",
+    )
 
 
 async def get_file(path: str, request: Request, token: str):
@@ -302,37 +258,27 @@ class ThumbnailResponse(BaseModel):
     file_path: str
     message: str
 
+
 async def generate_video_thumbnail(
     path: str, request: Request, time: float = 0.5, width: int = 200
-) -> StreamingResponse | ThumbnailResponse:
-    try:
-        src_file = resolve_path(path)
-        if not os.path.exists(src_file):
-            return ThumbnailResponse(
-                status="error",
-                file_path=path,
-                message="Video file not found"
-            )
+) -> StreamingResponse:
 
-        clip = VideoFileClip(src_file)
-        frame = clip.get_frame(time) 
-        clip.close()
+    check_token(request)
 
-        image = Image.fromarray(frame)
-        # Пропорционально уменьшаем ширину до `width`
-        w_percent = (width / float(image.width))
-        h_size = int((float(image.height) * float(w_percent)))
-        image = image.resize((width, h_size), Image.LANCZOS)
+    src_file = resolve_path(path)
+    check_file(src_file)
 
-        buf = BytesIO()
-        image.save(buf, format="PNG")
-        buf.seek(0)
+    clip = VideoFileClip(src_file)
+    frame = clip.get_frame(time)
+    clip.close()
 
-        return StreamingResponse(buf, media_type="image/png")
+    image = Image.fromarray(frame)
+    w_percent = width / float(image.width)
+    h_size = int((float(image.height) * float(w_percent)))
+    image = image.resize((width, h_size), Image.LANCZOS)
 
-    except Exception as e:
-        return ThumbnailResponse(
-            status="error",
-            file_path=path,
-            message=str(e)
-        )
+    buf = BytesIO()
+    image.save(buf, format="PNG")
+    buf.seek(0)
+
+    return StreamingResponse(buf, media_type="image/png")

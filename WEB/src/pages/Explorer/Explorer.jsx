@@ -57,7 +57,6 @@ export function Explorer() {
 
   const handleCreateDir = async () => {
     await createDir(`${path}/${createDirPopupValue}`);
-    console.log(a);
     setCreateDirPopupValue("");
     updateExplorer(path, setDirs, setFiles, files, navigate);
   };
