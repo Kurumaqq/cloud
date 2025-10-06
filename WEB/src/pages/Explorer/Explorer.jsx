@@ -10,13 +10,24 @@ import ContextMenu from "../../components/ContextMenu/ContextMenu";
 import NamePopup from "../../components/NamePopup/NamePopup";
 import BlurBg from "../../components/Blurbg/Blurbg";
 import { createDir, deleteDir } from "../../utils/api/dirs";
-import { deleteFile, getFile, renameFile } from "../../utils/api/files";
+import {
+  addFavFile,
+  deleteFile,
+  getFile,
+  renameFile,
+  rmFavFile,
+} from "../../utils/api/files";
 import { renameDir } from "../../utils/api/dirs";
 import ConfirmPopup from "../../components/ConfirmPopup/ConfirmPopup";
 import FullScreenImg from "../../components/FullScreenImg/FullScreenImg";
 import FullScreenVideo from "../../components/FullScreenVideo/FullScreenVideo";
 import config from "../../../public/config.json";
-import { getIcon, updateExplorer, uploadFile } from "../../utils/utils";
+import {
+  getIcon,
+  updateExplorer,
+  updateFiles,
+  uploadFile,
+} from "../../utils/utils";
 // import { useNavigate } from "react-router-dom";
 
 export let currentSelect = { path: "", type: "" };
@@ -27,6 +38,7 @@ export function Explorer() {
     .replace(/\/{2,}/g, "/")
     .replace("/root", "");
   const navigate = useNavigate();
+  const [searchValue, setSearchValue] = useState("");
   const [progressFiles, setProgressFiles] = useState([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [showProgressFiles, setShowProgressFiles] = useState(false);
@@ -46,6 +58,7 @@ export function Explorer() {
   const [files, setFiles] = useState([]);
   const [dirs, setDirs] = useState([]);
 
+  //   console.log(files);
   const contextHandle = (e, name, type) => {
     e.preventDefault();
     currentSelect.path = path != "" ? `${path}/${name}` : name;
@@ -130,7 +143,7 @@ export function Explorer() {
         )
       )
     );
-    updateExplorer(path, setDirs, setFiles, files, navigate);
+    updateExplorer(path, setDirs, setFiles, files, navigate, searchValue);
   };
 
   useEffect(() => {
@@ -164,6 +177,20 @@ export function Explorer() {
           setShowCreateDirPopup={setShowCreateDirPopup}
           setShowBlur={setShowBlur}
           path={`root/${decodeURIComponent(path)}`}
+          searchValue={searchValue}
+          setSearchValue={setSearchValue}
+          onChangeSearch={(e) => {
+            setSearchValue(e.target.value);
+            updateExplorer(
+              path,
+              setDirs,
+              setFiles,
+              files,
+              navigate,
+              e.target.value
+            );
+          }}
+          files={files}
         />
         <div className={classes.fileContainer}>
           {dirs.map((f, i) => (
@@ -176,18 +203,38 @@ export function Explorer() {
               setDirs={setDirs}
               setFiles={setFiles}
               files={files}
+              show={f.show}
             />
           ))}
-          {files.map((f, i) => (
-            <File
-              contextHandle={(e) => contextHandle(e, f.name, "file")}
-              onClick={() => handleOnClickFile(f.name)}
-              key={i}
-              path={path}
-              filename={f.name}
-              icon={f.icon}
-            />
-          ))}
+          {files.map((f, i) => {
+            return (
+              <File
+                contextHandle={(e) => contextHandle(e, f.name, "file")}
+                onClick={() => handleOnClickFile(f.name)}
+                key={i}
+                path={path}
+                filename={f.name}
+                icon={f.icon}
+                show={f.show}
+                isFavourite={f.favourite}
+                onClickStar={async () => {
+                  const curr_path = path ? path + "/" : "";
+                  if (!f.favourite) {
+                    await addFavFile(`${curr_path}${f.name}`);
+                  } else if (f.favourite) {
+                    await rmFavFile(`${curr_path}${f.name}`);
+                  }
+                  setFiles((prev) =>
+                    prev.map((file) =>
+                      file.name === f.name
+                        ? { ...file, favourite: !file.favourite }
+                        : file
+                    )
+                  );
+                }}
+              />
+            );
+          })}
         </div>
         <ProgressBar
           setShow={setShowProgressFiles}

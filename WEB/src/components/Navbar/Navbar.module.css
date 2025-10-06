@@ -1,9 +1,10 @@
 .navbar {
   display: flex;
-  margin-top: 20px;
+  padding-top: 10px;
+  padding-bottom: 5px;
   border-radius: 15px;
   align-items: center;
-  background-color: #0d0d0d;
+  background-color: rgba(0, 0, 0, 0.5);
   justify-content: center;
   backdrop-filter: blur(15px);
   gap: 13px;
@@ -28,8 +29,6 @@
   border: hsl(0, 0%, 18.82%) solid 2px;
   line-height: 3.4rem;
   text-align: center;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   width: 50%;
   height: 2rem;
 }
@@ -44,8 +43,6 @@
   text-align: center;
   width: 8rem;
   height: 2rem;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
 }
 .btn {
   all: unset;

@@ -15,6 +15,7 @@ import bcrypt
 import shutil
 from jwt import decode, exceptions
 from urllib.parse import unquote
+import json
 
 config = Config()
 
@@ -30,10 +31,9 @@ def check_path(path: str) -> bool:
     if ".." in path or Path(path).is_absolute():
         raise PathTraversalHttpError(path)
 
-    # full_path = (Path(config.base_dir) / path).resolve()
-    # base_path = Path(config.base_dir).resolve()
-    # if not str(path).startswith(str(base_path)):
-    #     raise InvalidPathHttpError(path)
+    base_path = Path(config.base_dir).resolve()
+    if path.startswith(str(base_path)):
+        raise PathTraversalHttpError(path)
 
     return True
 
@@ -122,6 +122,61 @@ async def copy_thread(src: Path, dst: Path):
     await asyncio.to_thread(shutil.copy, src, dst)
     return dst
 
+
+def check_favourite(path, t):
+    base_dir = Path(config.base_dir)
+    with open("src/config/config.json", "r") as f:
+        data = json.load(f)
+        if str(base_dir / path) in data["favourite"]["files"] and t == "file":
+            return True
+        if str(base_dir / path) in data["favourite"]["dirs"] and t == "dir":
+            return True
+    return False
+
+
+def add_favourite(path, t):
+    base_dir = Path(config.base_dir)
+    with open("src/config/config.json", "r") as f:
+        data = json.load(f)
+        if t == "file":
+            data["favourite"]["files"].append(str(base_dir / path))
+        elif t == "dir":
+            data["favourite"]["dirs"].append(str(base_dir / path))
+    with open("src/config/config.json", "w") as f:
+        json.dump(data, f, indent=4)
+
+
+def remove_favourite(path, t):
+    base_dir = Path(config.base_dir)
+    with open("src/config/config.json", "r") as f:
+        data = json.load(f)
+        if t == "file":
+            data["favourite"]["files"].remove(str(base_dir / path))
+        elif t == "dir":
+            data["favourite"]["dirs"].remove(str(base_dir / path))
+    with open("src/config/config.json", "w") as f:
+        json.dump(data, f, indent=4)
+
+def change_favourite(key, new_value, t):
+    base_dir = Path(config.base_dir)
+    with open("src/config/config.json", "r") as f:
+        data = json.load(f)
+        if t == "file":
+            for i in range(len(data["favourite"]["files"])):
+                print("Hui")
+                if data["favourite"]["files"][i] == key:
+                    print(key, data["favourite"]["files"][i])
+                    data["favourite"]["files"][i] = str(base_dir / new_value)
+                    break
+            # data["favourite"]["files"][key] = str(base_dir / new_value)
+        elif t == "dir":
+            for i in range(len(data["favourite"]["dirs"])):
+                if data["favourite"]["dirs"][i] == key:
+                    data["favourite"]["dirs"][i] = str(base_dir / new_value)
+                    break
+            # data["favourite"]["dirs"][key] = str(base_dir / new_value)
+    with open("src/config/config.json", "w") as f:
+        json.dump(data, f, indent=4)
 
 def encode_jwt(payload: dict):
     return jwt.encode(payload, config.secret_key, algorithm="RS256")

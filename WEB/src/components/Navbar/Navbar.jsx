@@ -3,7 +3,15 @@ import classes from "./Navbar.module.css";
 import ButtonNav from "./ButtonNav";
 import { useNavigate } from "react-router-dom";
 
-export default function Navbar({ path, setShowCreateDirPopup, setShowBlur }) {
+export default function Navbar({
+  path,
+  setShowCreateDirPopup,
+  setShowBlur,
+  searchValue,
+  setSearchValue,
+  files,
+  onChangeSearch,
+}) {
   const [pathValue, setPath] = useState(path);
   const navigate = useNavigate();
 
@@ -58,7 +66,12 @@ export default function Navbar({ path, setShowCreateDirPopup, setShowBlur }) {
         value={pathValue}
         onChange={(e) => setPath(e.target.value)}
       ></input>
-      <input className={classes.search} placeholder="search"></input>
+      <input
+        onChange={onChangeSearch}
+        className={classes.search}
+        placeholder="search"
+        value={searchValue}
+      ></input>
     </nav>
   );
 }

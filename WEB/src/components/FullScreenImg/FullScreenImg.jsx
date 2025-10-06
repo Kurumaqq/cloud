@@ -131,7 +131,7 @@ export default function FullScreenImg({
 
   useEffect(() => {
     if (!show) {
-      setScale(0.7);
+      setScale(0.5);
       setPosition({ x: 0, y: 0 });
     }
   }, [show]);

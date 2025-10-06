@@ -1,4 +1,5 @@
 .file {
+  position: relative;
   width: 120px;
   height: 120px;
   border-radius: 16px;
@@ -39,4 +40,18 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.starBtn {
+  all: unset;
+  cursor: pointer;
+  position: absolute;
+  top: 5px;
+  right: 5px;
+}
+
+.starIcon {
+  background-color: none;
+  width: 25px;
+  height: 25px;
 }

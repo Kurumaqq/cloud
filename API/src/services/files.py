@@ -5,7 +5,11 @@ from src.utils import (
     check_token,
     unique_name,
     copy_thread,
-    resolve_path
+    resolve_path,
+    check_favourite,
+    add_favourite,
+    remove_favourite,
+    change_favourite,
 )
 from fastapi.responses import FileResponse, StreamingResponse
 from src.errors.dirs import NotDirHttpError
@@ -25,21 +29,62 @@ import os
 
 config = Config()
 
+
 async def list_files(path: str, request: Request) -> ListFilesResponse:
     check_token(request)
-
     src_dir = resolve_path(path)
     check_path(path)
 
     if not src_dir.is_dir():
         raise NotDirHttpError(path)
 
-    files = [f.name for f in src_dir.iterdir() if f.is_file()]
+    files = []
+
+    for i in src_dir.iterdir():
+        if i.is_file():
+            favourite = check_favourite(src_dir / i.name, "file")
+            files.append(
+                {
+                    "name": i.name,
+                    "favourite": favourite,
+                    "size": 0,
+                }
+            )
+
+    sorted_files = sorted(files, key=lambda x: (-x["favourite"], x["name"]))
 
     return ListFilesResponse(
-        status="ok", files=files, message="Files listed successfully."
+        status="ok", files=sorted_files, message="Files listed successfully."
     )
 
+
+async def add_fav(path: str, request: Request) -> AddFavouriteResponse:
+    check_token(request)
+    src_file = resolve_path(path)
+    check_path(path)
+    check_file(src_file)
+
+    add_favourite(src_file, "file")
+
+    return AddFavouriteResponse(
+        status="ok",
+        filename=src_file.name,
+        message=f"File {src_file.name} added to favourite successfully.",
+    )
+
+async def remove_fav(path: str, request: Request) -> DeleteFavouriteResponse:
+    check_token(request)
+    src_file = resolve_path(path)
+    check_path(path)
+    check_file(src_file)
+
+    remove_favourite(src_file, "file")
+
+    return DeleteFavouriteResponse(
+        status="ok",
+        filename=src_file.name,
+        message=f"File {src_file.name} removed from favourite successfully.",
+    )
 
 async def move_file(path: str, move_path: str, request: Request) -> MoveFileResponse:
     check_token(request)
@@ -86,6 +131,7 @@ async def delete_file(path: str, request: Request) -> DeleteFilesResponse:
     check_file(src_file)
 
     src_file.unlink()
+    remove_favourite(src_file, "file")
 
     return DeleteFilesResponse(
         status="ok",
@@ -182,6 +228,7 @@ async def rename_file(path: str, new_name: str, request: Request) -> RenameFileR
     check_file(src_file)
 
     src_file.rename(dst_file)
+    change_favourite(str(src_file), str(dst_file), "file")
 
     return RenameFileResponse(
         status="ok",

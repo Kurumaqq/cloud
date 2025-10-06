@@ -1,6 +1,14 @@
 {
-  "host": "0.0.0.0",
-  "port": 8001,
-  "base_dir": "",
-  "username": "kurumaqq"
+    "host": "127.0.0.1",
+    "port": 8001,
+    "base_dir": "D:/hui",
+    "username": "kurumaqq",
+    "favourite": {
+        "files": [
+            "D:\\hui\\thorium_wA8kklkw57.png",
+            "D:\\hui\\Telegram_V4KytgSa7Z.png",
+            "D:\\hui\\Discord_KZ2FxCKmfi.png"
+        ],
+        "dirs": []
+    }
 }

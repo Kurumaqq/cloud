@@ -5,34 +5,59 @@ import {
   uploadFileApi,
 } from "./api/files";
 import { listDirs } from "./api/dirs";
-import config from "../../public/config.json";
-import { useNavigate } from "react-router-dom";
 
-export const updateFiles = async (path, setFilesList) => {
+let currentPath = null;
+let currentSearchValue = null;
+
+const iconCache = new Map();
+
+const getCachedIcon = async (name, path) => {
+  const key = `${path}/${name}`;
+
+  if (iconCache.has(key)) {
+    return iconCache.get(key);
+  }
+
+  const icon = await getIcon(name, path);
+
+  iconCache.set(key, icon);
+
+  return icon;
+};
+
+export const updateFiles = async (path, setFilesList, searchValue) => {
+  currentPath = path;
+  currentSearchValue = searchValue;
+
   try {
     const res = await listFiles(path);
-    const serverFiles = (res.data.files ?? []).map((f) => f.split("/").pop());
+    const serverFiles = (res.data.files ?? []).map((f) => ({
+      name: f.name.split("/").pop(),
+      favourite: f.favourite,
+      size: f.size,
+    }));
 
-    setFilesList((prev) => {
-      const updated = [];
+    if (currentPath !== path || currentSearchValue != searchValue) return;
 
-      for (const name of serverFiles) {
-        const existing = prev.find((file) => file.name === name);
-        if (existing) {
-          updated.push(existing);
-        } else {
-          updated.push({ name, icon: null });
-        }
-      }
+    // Сначала устанавливаем список файлов с актуальными favourite
+    setFilesList(
+      serverFiles.map((f) => ({
+        name: f.name,
+        icon: null,
+        show:
+          !searchValue ||
+          f.name.toLowerCase().includes(searchValue.toLowerCase()),
+        favourite: f.favourite,
+      }))
+    );
 
-      return updated;
-    });
-
-    for (const name of serverFiles) {
-      const icon = await getIcon(name, path);
+    for (const f of serverFiles) {
+      const icon = await getCachedIcon(f.name, path);
       setFilesList((prev) =>
         prev.map((file) =>
-          file.name === name && file.icon === null ? { ...file, icon } : file
+          file.name === f.name
+            ? { ...file, icon, favourite: f.favourite }
+            : file
         )
       );
     }
@@ -41,16 +66,25 @@ export const updateFiles = async (path, setFilesList) => {
   }
 };
 
-export const updateDirs = (path, setDirs, navigate) => {
+export const updateDirs = (path, setDirs, navigate, searchValue) => {
   listDirs(path)
-    .then((res) =>
+    .then((res) => {
       setDirs(
-        res.data.dirs.map((d) => ({
-          name: d.split("/").pop(),
-          icon: "folder-base.svg",
-        }))
-      )
-    )
+        res.data.dirs.map((d) => {
+          const name = d.split("/").pop();
+
+          const shouldShow =
+            !searchValue ||
+            name.toLowerCase().includes(searchValue.toLowerCase());
+
+          return {
+            name,
+            icon: "folder-base.svg",
+            show: shouldShow,
+          };
+        })
+      );
+    })
     .catch(() => navigate("/login"));
 };
 
@@ -59,11 +93,12 @@ export const updateExplorer = async (
   setDirs,
   setFiles,
   files,
-  navigate
+  navigate,
+  searchValue
 ) => {
   await Promise.all([
-    updateDirs(path, setDirs, navigate),
-    updateFiles(path, setFiles, files),
+    updateDirs(path, setDirs, navigate, searchValue),
+    updateFiles(path, setFiles, searchValue),
   ]);
 };
 
@@ -71,7 +106,8 @@ export const uploadFile = async (
   file,
   path,
   setProgressFiles,
-  setShowProgressFiles
+  setShowProgressFiles,
+  searchValue
 ) => {
   try {
     setShowProgressFiles(true);

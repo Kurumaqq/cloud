@@ -4,12 +4,36 @@ import config from "../../../public/config.json";
 const API_BASE = config.APIURL;
 const CHUNK_SIZE = 5 * 1024 * 1024;
 
-export const listFiles = (path) =>
+export const listFiles = async (path) =>
   axios.get(`${API_BASE}/files/list/${path}`, {
     headers: {
       Authorization: localStorage.getItem("accessToken"),
     },
   });
+
+export const addFavFile = async (path) => {
+  axios.post(
+    `${API_BASE}/files/add-favourite?path=${path}`,
+    {},
+    {
+      headers: {
+        Authorization: localStorage.getItem("accessToken"),
+      },
+    }
+  );
+};
+
+export const rmFavFile = async (path) => {
+  axios.post(
+    `${API_BASE}/files/rm-favourite?path=${path}`,
+    {},
+    {
+      headers: {
+        Authorization: localStorage.getItem("accessToken"),
+      },
+    }
+  );
+};
 
 export const getFile = async (path) => {
   const response = await axios.get(

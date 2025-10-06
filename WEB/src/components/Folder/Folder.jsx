@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import classes from "./Folder.module.css";
 import { copyFile, deleteFile, moveFile } from "../../utils/api/files";
 import { updateExplorer } from "../../utils/utils";
+import { useState } from "react";
 export default function Dir({
   name,
   icon,
@@ -10,7 +11,11 @@ export default function Dir({
   files,
   setFiles,
   setDirs,
+  show,
 }) {
+  const [showStar, setShowStar] = useState(false);
+  const [starActive, setStarActive] = useState(false);
+  const [constStarActive, setConstStarActive] = useState(false);
   const icon_path = "/icons/folder";
   const navigate = useNavigate();
   path ? (path += "/") : null;
@@ -19,8 +24,10 @@ export default function Dir({
     navigate(name);
   }
 
-  return (
+  return show ? (
     <div
+      onMouseEnter={() => setShowStar(true)}
+      onMouseLeave={() => setShowStar(false)}
       onClick={openFolder}
       draggable={true}
       onDragStart={(e) => {
@@ -36,7 +43,6 @@ export default function Dir({
         e.preventDefault();
       }}
       onDrop={async (e) => {
-        // debugger;
         e.preventDefault();
         const sourceFile = JSON.parse(
           e.dataTransfer.getData("text/plain")
@@ -54,6 +60,25 @@ export default function Dir({
     >
       <img draggable={false} src={`${icon_path}/${icon}`} alt="folder" />
       <div className={classes.foldername}>{name}</div>
+      {showStar ? (
+        <button
+          onMouseEnter={() => setStarActive(true)}
+          onMouseLeave={() => setStarActive(false)}
+          className={classes.starBtn}
+          onClick={(e) => {
+            e.stopPropagation();
+            setConstStarActive((prev) => !prev);
+          }}
+        >
+          <img
+            className={classes.starIcon}
+            src={`/icons/${
+              starActive || constStarActive ? "star-active" : "star-inactive"
+            }.svg`}
+            alt=""
+          />
+        </button>
+      ) : null}
     </div>
-  );
+  ) : null;
 }

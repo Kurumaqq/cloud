@@ -9,7 +9,7 @@ class DownloadFileErrorResponse(BaseModel):
 
 class ListFilesResponse(BaseModel):
     status: Literal["ok", "error"]
-    files: Optional[List[str]] = None
+    files: Optional[List[dict]] = None
     message: Optional[str] = None
 
 
@@ -67,6 +67,16 @@ class UploadChunkResponse(BaseModel):
 
 
 class CompleteUploadResponse(BaseModel):
+    status: Literal["ok"]
+    filename: Optional[str] = None
+    message: Optional[str] = None
+
+class AddFavouriteResponse(BaseModel):
+    status: Literal["ok"]
+    filename: Optional[str] = None
+    message: Optional[str] = None
+
+class DeleteFavouriteResponse(BaseModel):
     status: Literal["ok"]
     filename: Optional[str] = None
     message: Optional[str] = None
