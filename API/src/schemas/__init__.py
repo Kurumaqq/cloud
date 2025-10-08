@@ -1,3 +1,2 @@
-from .dirs import *
-from .files import *
-from .сombined import *
+from .request import *
+from .response import *

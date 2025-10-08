@@ -26,11 +26,15 @@ def resolve_path(path: str) -> Path:
 
 
 def check_path(path: str) -> bool:
-    if ".." in path or Path(path).is_absolute():
+    path = path.lstrip("/")
+
+    if ".." in path:
         raise PathTraversalHttpError(path)
 
     base_path = Path(config.base_dir).resolve()
-    if path.startswith(str(base_path)):
+    abs_path = (base_path / path).resolve()
+
+    if not str(abs_path).startswith(str(base_path)):
         raise PathTraversalHttpError(path)
 
     return True
@@ -189,9 +193,7 @@ def change_favourite(key, new_value, t):
         data = json.load(f)
         if t == "file":
             for i in range(len(data["favourite"]["files"])):
-                print("Hui")
                 if data["favourite"]["files"][i] == key:
-                    print(key, data["favourite"]["files"][i])
                     data["favourite"]["files"][i] = str(base_dir / new_value)
                     break
         elif t == "dir":

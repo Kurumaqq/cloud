@@ -7,9 +7,13 @@ from src.utils import (
     unique_name,
     copy_dir_thread,
     resolve_path,
+    check_favourite,
+    add_favourite,
+    remove_favourite,
 )
-from src.schemas.dirs import *
+from src.schemas.response.dirs import *
 from src.errors.dirs import *
+from src.schemas.request.dirs import *
 from src.config import Config
 from fastapi import Request, Response
 import platform
@@ -21,9 +25,7 @@ config = Config()
 
 
 async def list_dirs(
-    path: str, 
-    request: Request, 
-    response: Response
+    path: str, request: Request, response: Response
 ) -> ListDirsResponse:
     await check_token(request, response)
 
@@ -31,8 +33,25 @@ async def list_dirs(
     check_path(path)
     check_dir(src_dir)
 
-    dirs = [f.name for f in src_dir.iterdir() if f.is_dir()]
-    return ListDirsResponse(status="ok", dirs=dirs, message="Dirs listed successfully.")
+    dirs = []
+
+    for i in src_dir.iterdir():
+        if i.is_dir():
+            favourite = check_favourite(i, "dir")
+            print(i)
+            dirs.append(
+                {
+                    "name": i.name,
+                    "favourite": favourite,
+                    "size": 0,
+                }
+            )
+
+    sorted_dirs = sorted(dirs, key=lambda x: (-x["favourite"], x["name"]))
+
+    return ListDirsResponse(
+        status="ok", dirs=sorted_dirs, message="Dirs listed successfully."
+    )
 
 
 async def size_dir(path: str, request: Request, response: Response) -> SizeDirResponse:
@@ -73,15 +92,17 @@ async def create_dir(
 
 
 async def rename_dir(
-    path: str, new_path: str, request: Request, response: Response
+    data: RenameDirRequest, request: Request, response: Response
 ) -> RenameDirResponse:
     await check_token(request, response)
-    check_paths([path, new_path])
+    path = data.path
+    new_name = data.new_name
+    check_paths([path, new_name])
 
-    new_name = resolve_path(new_path).name
+    src_new_name = resolve_path(new_name).name
     src_dir = resolve_path(path)
     old_name = src_dir.name
-    dst_dir = src_dir.parent / new_path
+    dst_dir = src_dir.parent / src_new_name
     check_dir(src_dir)
 
     dst_dir.parent.mkdir(parents=True, exist_ok=True)
@@ -90,15 +111,18 @@ async def rename_dir(
     return RenameDirResponse(
         status="ok",
         old_name=old_name,
-        new_name=new_name,
-        message=f"Directory {old_name} renamed to {new_name} successfully.",
+        new_name=src_new_name,
+        message=f"Directory {old_name} renamed to {src_new_name} successfully.",
     )
 
 
 async def copy_dir(
-    dir_path: str, copy_path: str, request: Request, response: Response
+    data: CopyDirRequest, request: Request, response: Response
 ) -> CopyDirResponse:
     await check_token(request, response)
+    dir_path = data.dir_path
+    copy_path = data.copy_path
+
     check_paths([dir_path, copy_path])
 
     src_dir = resolve_path(dir_path)
@@ -129,7 +153,7 @@ async def delete_dir(
     check_dir(src_dir)
 
     def remove_readonly(func, path, excinfo):
-        os.chmod(path, stat.S_IWRITE) 
+        os.chmod(path, stat.S_IWRITE)
         func(path)
 
     shutil.rmtree(src_dir, onerror=remove_readonly)
@@ -138,4 +162,36 @@ async def delete_dir(
         status="ok",
         dir=src_dir.name,
         message=f"Directory {src_dir.name} deleted successfully.",
+    )
+
+
+async def add_fav_dir(
+    path: str, request: Request, response: Response
+) -> AddFavouriteResponse:
+    await check_token(request, response)
+    src_dir = resolve_path(path)
+    check_path(path)
+    check_dir(src_dir)
+
+    add_favourite(path, "dir")
+    return AddFavouriteResponse(
+        status="ok",
+        filename=src_dir.name,
+        message=f"Directory {src_dir.name} added to favourite successfully.",
+    )
+
+
+async def remove_fav_dir(
+    path: str, request: Request, response: Response
+) -> DeleteFavouriteResponse:
+    await check_token(request, response)
+    src_dir = resolve_path(path)
+    check_path(path)
+    check_dir(src_dir)
+
+    remove_favourite(path, "dir")
+    return DeleteFavouriteResponse(
+        status="ok",
+        filename=src_dir.name,
+        message=f"Directory {src_dir.name} removed from favourite successfully.",
     )

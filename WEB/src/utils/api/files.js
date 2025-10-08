@@ -42,10 +42,10 @@ export const rmFavFile = async (path) => {
 export const getFile = async (path) => {
   const response = await axios.get(`${API_BASE}/files/get/${path}`, {
     withCredentials: true,
-    responseType: "blob",
     headers: {
       "X-CSRF-TOKEN": getCookie("csrf_access_token"),
     },
+    responseType: "blob",
   });
   const blob = response.data;
   const url = URL.createObjectURL(blob);
@@ -66,43 +66,29 @@ export const copyFile = async (path, copy_path) => {
 };
 
 export const getVideoThumbnail = async (path, time = 0.5) => {
-  const response = await axios.get(
-    `${API_BASE}/files/thumbnail/${path}?time=${time}`,
+  const response = await axios.get(`${API_BASE}/files/thumbnail/${path}`, {
+    params: { time },
+    withCredentials: true,
+    headers: {
+      "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+    },
+    responseType: "blob",
+  });
+
+  return URL.createObjectURL(response.data);
+};
+
+export const moveFile = async (path, movePath) => {
+  const response = await axios.post(
+    `${API_BASE}/files/move`,
+    { path: path, move_path: movePath },
     {
       withCredentials: true,
       headers: {
         "X-CSRF-TOKEN": getCookie("csrf_access_token"),
       },
-      responseType: "blob",
     }
   );
-
-  return URL.createObjectURL(response.data);
-};
-
-export const moveFile = async (path, move_path) => {
-  console.log("Запрос на перемещение файла:", { path, move_path });
-
-  try {
-    const response = await axios.post(
-      `${API_BASE}/files/move?path=${encodeURIComponent(
-        path
-      )}&move_path=${encodeURIComponent(move_path)}`,
-      {},
-      {
-        withCredentials: true,
-        headers: {
-          "X-CSRF-TOKEN": getCookie("csrf_access_token"),
-        },
-      }
-    );
-
-    console.log("Ответ от сервера:", response.data);
-    return response.data;
-  } catch (error) {
-    console.error("Ошибка при перемещении файла:", error);
-    throw error;
-  }
 };
 
 export const uploadFileApi = async (path, file, onProgress) => {
@@ -118,9 +104,9 @@ export const uploadFileApi = async (path, file, onProgress) => {
 
     const formData = new FormData();
     formData.append("file", chunk, file.name);
-    formData.append("uploadId", uploadId);
-    formData.append("chunkIndex", chunkIndex);
-    formData.append("totalChunks", totalChunks);
+    formData.append("upload_id", String(uploadId));
+    formData.append("chunk_index", String(chunkIndex));
+    formData.append("total_chunks", totalChunks);
     formData.append("filename", file.name);
     formData.append("path", path);
 
@@ -141,31 +127,33 @@ export const uploadFileApi = async (path, file, onProgress) => {
 
     uploadedBytes += chunk.size;
   }
+  const formData = new FormData();
+  formData.append("upload_id", uploadId);
+  formData.append("total_chunks", totalChunks);
+  formData.append("filename", file.name);
+  formData.append("path", path);
 
-  const response = await axios.get(`${API_BASE}/files/complete-upload`, {
-    withCredentials: true,
-    headers: {
-      "X-CSRF-TOKEN": getCookie("csrf_access_token"),
-    },
-    params: {
-      uploadId,
-      totalChunks,
-      filename: file.name,
-      path,
-    },
-  });
+  const response = await axios.post(
+    `${API_BASE}/files/complete-upload`,
+    formData,
+    {
+      withCredentials: true,
+      headers: {
+        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+      },
+    }
+  );
 
   if (onProgress) onProgress(100);
 
   return response.data;
 };
 
-export const renameFile = async (path, new_name) => {
+export const renameFile = async (path, newName) => {
   return axios.post(
     `${API_BASE}/files/rename`,
-    {},
+    { path: path, new_name: newName },
     {
-      params: { path: path, new_name: new_name },
       withCredentials: true,
       headers: {
         "X-CSRF-TOKEN": getCookie("csrf_access_token"),

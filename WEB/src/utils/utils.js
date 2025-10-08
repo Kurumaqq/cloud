@@ -5,6 +5,7 @@ import {
   uploadFileApi,
 } from "./api/files";
 import { listDirs } from "./api/dirs";
+import config from "../../public/config.json";
 
 let currentPath = null;
 let currentSearchValue = null;
@@ -39,16 +40,18 @@ export const updateFiles = async (path, setFilesList, searchValue) => {
 
     if (currentPath !== path || currentSearchValue != searchValue) return;
 
-    // Сначала устанавливаем список файлов с актуальными favourite
     setFilesList(
-      serverFiles.map((f) => ({
-        name: f.name,
-        icon: null,
-        show:
+      serverFiles.map((f) => {
+        const shouldShow =
           !searchValue ||
-          f.name.toLowerCase().includes(searchValue.toLowerCase()),
-        favourite: f.favourite,
-      }))
+          f.name.toLowerCase().includes(searchValue.toLowerCase());
+        return {
+          name: f.name,
+          icon: null,
+          favourite: f.favourite,
+          show: shouldShow,
+        };
+      })
     );
 
     for (const f of serverFiles) {
@@ -66,33 +69,38 @@ export const updateFiles = async (path, setFilesList, searchValue) => {
   }
 };
 
-export const updateDirs = (path, setDirs, navigate, searchValue) => {
-  listDirs(path)
-    .then((res) => {
-      setDirs(
-        res.data.dirs.map((d) => {
-          const name = d.split("/").pop();
-
-          const shouldShow =
-            !searchValue ||
-            name.toLowerCase().includes(searchValue.toLowerCase());
-
-          return {
-            name,
-            icon: "folder-base.svg",
-            show: shouldShow,
-          };
-        })
-      );
-    })
-    .catch(() => navigate("/login"));
+export const updateDirs = async (path, setDirs, navigate, searchValue) => {
+  try {
+    const res = await listDirs(path);
+    const dirs = (res.data.dirs ?? []).map((d) => ({
+      name: d.name.split("/").pop(),
+      favourite: d.favourite,
+      size: d.size,
+    }));
+    console.log(dirs);
+    setDirs(
+      dirs.map((d) => {
+        console.log(d.favourite);
+        const shouldShow =
+          !searchValue ||
+          d.name.toLowerCase().includes(searchValue.toLowerCase());
+        return {
+          name: d.name,
+          icon: "folder-base.svg",
+          favourite: d.favourite,
+          show: shouldShow,
+        };
+      })
+    );
+  } catch (e) {
+    console.log(e);
+  }
 };
 
 export const updateExplorer = async (
   path,
   setDirs,
   setFiles,
-  files,
   navigate,
   searchValue
 ) => {
@@ -106,8 +114,7 @@ export const uploadFile = async (
   file,
   path,
   setProgressFiles,
-  setShowProgressFiles,
-  searchValue
+  setShowProgressFiles
 ) => {
   try {
     setShowProgressFiles(true);
@@ -136,7 +143,7 @@ export const getIcon = async (filename, path = "") => {
   }
 
   const picExt = ["jpg", "jpeg", "png", "gif", "bmp", "svg"];
-  const videoExt = ["mp4", "webm", "ogg"];
+  const videoExt = ["mp4", "webm", "ogg", "mkv"];
   if (path) path += "/";
 
   const ext = filename.split(".").pop().toLowerCase();

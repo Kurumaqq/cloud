@@ -17,10 +17,6 @@ export default function File({
 
   const [starShow, setStarShow] = useState(false);
   const [starActive, setStarActive] = useState(isFavourite);
-  const [constShowStar, setConstShowStar] = useState(isFavourite);
-  //   if (filename === "hui.png") console.log(isFavourite);
-  // const [constStarActive, setConstStarActive] = useState(false);
-
   return show ? (
     <div
       onDragStart={(e) => {
@@ -32,7 +28,7 @@ export default function File({
           })
         );
       }}
-      onMouseEnter={() => (!starActive ? setStarShow(true) : null)}
+      onMouseEnter={() => setStarShow(true)}
       onMouseLeave={() => setStarShow(false)}
       onContextMenu={contextHandle}
       draggable={true}
@@ -49,22 +45,14 @@ export default function File({
         }}
       />
       <div className={classes.filename}>{filename}</div>
-      {starShow || constShowStar ? (
+      {starShow || isFavourite ? (
         <button
+          className={classes.starBtn}
           onMouseEnter={() => setStarActive(true)}
           onMouseLeave={() => setStarActive(false)}
-          className={classes.starBtn}
           onClick={(e) => {
             e.stopPropagation();
             onClickStar();
-            if (constShowStar) {
-              setStarShow(true);
-              setConstShowStar(false);
-            } else {
-              setConstShowStar(true);
-            }
-            // else{ setConstShowStar(true)};
-            // setConstShowStar(true);
           }}
         >
           <img

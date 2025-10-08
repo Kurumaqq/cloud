@@ -13,8 +13,9 @@ from src.utils import (
 )
 from fastapi.responses import FileResponse, StreamingResponse
 from src.errors.dirs import NotDirHttpError
-from fastapi import UploadFile, Request, Form, Query, Response
-from src.schemas.files import *
+from fastapi import UploadFile, Request, Form, Query, Response, File
+from src.schemas.response.files import *
+from src.schemas.request.files import *
 from src.errors.files import *
 from src.config import Config
 from pathlib import Path
@@ -29,7 +30,9 @@ import os
 config = Config()
 
 
-async def list_files(path: str, request: Request, response: Response) -> ListFilesResponse:
+async def list_files(
+    path: str, request: Request, response: Response
+) -> ListFilesResponse:
     await check_token(request, response)
     src_dir = resolve_path(path)
     check_path(path)
@@ -53,11 +56,13 @@ async def list_files(path: str, request: Request, response: Response) -> ListFil
     sorted_files = sorted(files, key=lambda x: (-x["favourite"], x["name"]))
 
     return ListFilesResponse(
-        status="ok", files=sorted_files, message="Files listed successfully."
+        status="ok", 
+        files=sorted_files, 
+        message="Files listed successfully."
     )
 
 
-async def add_fav(
+async def add_fav_file(
     path: str, request: Request, response: Response
 ) -> AddFavouriteResponse:
     await check_token(request, response)
@@ -74,7 +79,7 @@ async def add_fav(
     )
 
 
-async def remove_fav(
+async def remove_fav_file(
     path: str, request: Request, response: Response
 ) -> DeleteFavouriteResponse:
     await check_token(request, response)
@@ -92,9 +97,12 @@ async def remove_fav(
 
 
 async def move_file(
-    path: str, move_path: str, request: Request, response: Response
+    data: MoveFileRequest, request: Request, response: Response
 ) -> MoveFileResponse:
     await check_token(request, response)
+
+    path = data.path
+    move_path = data.move_path
 
     src_file = resolve_path(path)
     dst_file = resolve_path(move_path)
@@ -107,6 +115,9 @@ async def move_file(
     await copy_thread(src_file, target_path)
     os.remove(src_file)
 
+    if check_favourite(str(src_file), "file"):
+        change_favourite(str(src_file), str(target_path), "file")
+
     return MoveFileResponse(
         status="ok",
         old_path=path,
@@ -116,7 +127,9 @@ async def move_file(
     )
 
 
-async def download_file(path: str, request: Request, response: Response) -> FileResponse:
+async def download_file(
+    path: str, request: Request, response: Response
+) -> FileResponse:
     await check_token(request, response)
 
     src_file = resolve_path(path)
@@ -153,30 +166,30 @@ async def delete_file(
 async def upload_chunk(
     request: Request,
     response: Response,
-    file: UploadFile,
-    uploadId: str = Form(...),
-    chunkIndex: int = Form(...),
+    file: UploadFile = File(...),
+    upload_id: str = Form(...),
+    chunk_index: int = Form(...),
 ):
-    await check_token(request, response)
+    print("upload_id:", upload_id)
+    print("chunk_index:", chunk_index)
+    print("file:", file.filename)
 
-    temp_dir = Path("tmp") / uploadId
+    temp_dir = Path("tmp") / upload_id
     temp_dir.mkdir(parents=True, exist_ok=True)
 
-    chunk_path = temp_dir / f"{chunkIndex:05d}.part"
+    chunk_path = temp_dir / f"{chunk_index:05d}.part"
     with open(chunk_path, "wb") as f:
         while content := await file.read(10 * 1024 * 1024):
             f.write(content)
 
-    return UploadChunkResponse(
-        status="ok", chunkIndex=chunkIndex, message="Upload chunk is successfull"
-    )
+    return {"status": "ok", "chunkIndex": chunk_index}
 
 
 async def complete_upload(
     request: Request,
     response: Response,
-    uploadId: str = Form(...),
-    totalChunks: int = Form(...),
+    upload_id: str = Form(...),
+    total_chunks: int = Form(...),
     filename: str = Form(...),
     path: str = Form("/"),
 ):
@@ -186,11 +199,11 @@ async def complete_upload(
     target_dir.mkdir(parents=True, exist_ok=True)
     target_file = target_dir / filename
 
-    temp_dir = Path("tmp") / uploadId
+    temp_dir = Path("tmp") / upload_id
     temp_dir.mkdir(parents=True, exist_ok=True)
 
     with open(target_file, "wb") as outfile:
-        for i in range(totalChunks):
+        for i in range(total_chunks):
             chunk_path = temp_dir / f"{i:05d}.part"
             if not chunk_path.exists():
                 raise FileNotFoundError(f"Chunk not found: {chunk_path}")
@@ -225,12 +238,13 @@ async def read_file(
 
 
 async def rename_file(
-    path: str,
-    new_name: str,
+    data: RenameFileRequest,
     request: Request,
     response: Response,
 ) -> RenameFileResponse:
     await check_token(request, response)
+    path = data.path
+    new_name = data.new_name
 
     decoded_path = unquote(path)
     decoded_new_name = unquote(new_name)
@@ -260,25 +274,29 @@ async def rename_file(
 
 
 async def copy_file(
-    file_path: str,
-    copy_path: str,
+    data: CopyFileRequest,
     request: Request,
     response: Response,
 ) -> CopyFileResponse:
     await check_token(request, response)
+    path = data.path
+    copy_path = data.copy_path
 
-    src_file = resolve_path(file_path)
+    src_file = resolve_path(path)
     dst_file = resolve_path(copy_path)
 
-    check_paths([file_path, copy_path])
+    check_paths([path, copy_path])
     check_file(src_file)
 
     target_path = unique_name(dst_file, src_file.name, "file")
     await copy_thread(src_file, target_path)
 
+    if check_favourite(str(src_file), "file"):
+        change_favourite(str(src_file), str(target_path), "file")
+
     return CopyFileResponse(
         status="ok",
-        old_path=file_path,
+        old_path=path,
         new_path=copy_path,
         name=target_path.name,
         message=f"File {src_file.name} copied to {copy_path} successfully.",
@@ -334,9 +352,12 @@ class ThumbnailResponse(BaseModel):
     message: str
 
 
-async def generate_video_thumbnail(
-    path: str, request: Request, response: Response, time: float = 0.5, width: int = 200
+async def gen_video_thumb(
+    data: GenVideoThumbRequest, request: Request, response: Response
 ) -> StreamingResponse:
+    path = data.path
+    time = data.time
+    width = data.width
 
     await check_token(request, response)
 

@@ -1,60 +1,55 @@
 import classes from "./ContextMenu.module.css";
 import Button from "./Button";
-import { currentSelect } from "../../pages/Explorer/Explorer";
-import { downloadFile } from "../../utils/api/files";
+import { useNavigate } from "react-router-dom";
 
 export default function ContextMenu({
   show,
-  path,
+  setShow,
   x,
   y,
-  setShowRenamePopup,
+  path,
+  setShowCreateDir,
   setShowBlur,
-  setShowContext,
-  setShowConfirmPopup,
 }) {
-  function handleRename() {
-    setShowContext(false);
-    setShowRenamePopup(true);
-    setShowBlur(true);
-  }
+  if (!show) return null;
+  const navigate = useNavigate();
 
-  function handleCopy() {
-    setShowContext(false);
-    localStorage.setItem("copy", JSON.stringify(currentSelect));
-  }
-
-  function handleDelete() {
-    setShowContext(false);
-    setShowConfirmPopup(true);
-    setShowBlur(true);
-  }
-
-  const handleDownload = async () => {
-    setShowContext(false);
-    console.log(await downloadFile(currentSelect.path));
+  const handleRefresh = () => {
+    window.location.reload();
+    setShow(false);
   };
-  return show ? (
+
+  const handleBack = () => {
+    console.log(path);
+    path = path.split("/").slice(0, -1).join("/");
+    console.log(path);
+    navigate(`/root/${path}`);
+    setShow(false);
+  };
+
+  const handleCreateDir = () => {
+    setShowCreateDir(true);
+    setShow(false);
+    setShowBlur(true);
+  };
+
+  return (
     <div
       className={classes.contextMenu}
       style={{ insetInlineStart: x, insetBlockStart: y }}
     >
       <ul className={classes.ul}>
-        <Button onClick={handleCopy} icon={"copy.svg"}>
-          Сopy
+        <Button icon={"./paste.svg"}>Paste</Button>
+        <Button icon={"./back.svg"} onClick={handleBack}>
+          Back
         </Button>
-        <Button onClick={handleRename} icon={"rename.svg"}>
-          Rename
+        <Button icon={"./refresh.svg"} onClick={handleRefresh}>
+          Refresh
         </Button>
-        <Button onClick={handleDownload} icon={"download.svg"}>
-          Download
-        </Button>
-        <Button onClick={handleDelete} icon={"delete.svg"}>
-          Delete
+        <Button icon={"./plus.svg"} onClick={handleCreateDir}>
+          Create dir
         </Button>
       </ul>
     </div>
-  ) : (
-    <></>
   );
 }

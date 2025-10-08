@@ -6,14 +6,19 @@ import File from "../../components/File/File";
 import ProgressBar from "../../components/ProgressBar/ProgressBar";
 import Dir from "../../components/Folder/Folder";
 import classes from "./Explorer.module.css";
-import ContextMenu from "../../components/ContextMenu/ContextMenu";
+import ItemContextMenu from "../../components/ContextMenu/ItemContextMenu";
 import NamePopup from "../../components/NamePopup/NamePopup";
 import BlurBg from "../../components/Blurbg/Blurbg";
-import { createDir, deleteDir } from "../../utils/api/dirs";
+import ContextMenu from "../../components/ContextMenu/ContextMenu";
+import {
+  addFavDir,
+  createDir,
+  deleteDir,
+  rmFavDir,
+} from "../../utils/api/dirs";
 import {
   addFavFile,
   deleteFile,
-  getFile,
   renameFile,
   rmFavFile,
 } from "../../utils/api/files";
@@ -22,13 +27,7 @@ import ConfirmPopup from "../../components/ConfirmPopup/ConfirmPopup";
 import FullScreenImg from "../../components/FullScreenImg/FullScreenImg";
 import FullScreenVideo from "../../components/FullScreenVideo/FullScreenVideo";
 import config from "../../../public/config.json";
-import {
-  getIcon,
-  updateExplorer,
-  updateFiles,
-  uploadFile,
-} from "../../utils/utils";
-// import { useNavigate } from "react-router-dom";
+import { getIcon, updateExplorer, uploadFile } from "../../utils/utils";
 
 export let currentSelect = { path: "", type: "" };
 export function Explorer() {
@@ -43,6 +42,7 @@ export function Explorer() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [showProgressFiles, setShowProgressFiles] = useState(false);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  const [showItemContext, setShowItemContext] = useState(false);
   const [showContext, setShowContext] = useState(false);
   const [showRenamePopup, setShowRenamePopup] = useState(false);
   const [showCreateDirPopup, setShowCreateDirPopup] = useState(false);
@@ -58,20 +58,21 @@ export function Explorer() {
   const [files, setFiles] = useState([]);
   const [dirs, setDirs] = useState([]);
 
-  //   console.log(files);
   const contextHandle = (e, name, type) => {
     e.preventDefault();
+    e.stopPropagation();
     currentSelect.path = path != "" ? `${path}/${name}` : name;
     currentSelect.type = type;
     setRenamePopupValue(currentSelect.path.split("/").pop());
     setCursorPos({ x: e.pageX, y: e.pageY });
-    setShowContext(true);
+    setShowContext(false);
+    setShowItemContext(true);
   };
 
   const handleCreateDir = async () => {
     await createDir(`${path}/${createDirPopupValue}`);
     setCreateDirPopupValue("");
-    updateExplorer(path, setDirs, setFiles, files, navigate);
+    updateExplorer(path, setDirs, setFiles, navigate, searchValue);
   };
 
   const handleOnClickFile = (filename) => {
@@ -111,7 +112,7 @@ export function Explorer() {
           : renamePopupValue
       );
     }
-    updateExplorer(path, setDirs, setFiles, files, navigate);
+    updateExplorer(path, setDirs, setFiles, navigate, searchValue);
   };
 
   const handleDelete = async () => {
@@ -120,7 +121,7 @@ export function Explorer() {
     } else if (currentSelect.type == "dir") {
       await deleteDir(currentSelect.path);
     }
-    updateExplorer(path, setDirs, setFiles, files, navigate);
+    updateExplorer(path, setDirs, setFiles, navigate, searchValue);
   };
 
   const handleDrop = async (e) => {
@@ -139,7 +140,7 @@ export function Explorer() {
         )
       )
     );
-    updateExplorer(path, setDirs, setFiles, files, navigate, searchValue);
+    updateExplorer(path, setDirs, setFiles, navigate, searchValue);
   };
 
   useEffect(() => {
@@ -151,14 +152,24 @@ export function Explorer() {
   }, [showFullScreenImg, showFullScreenVideo]);
 
   useEffect(() => {
-    updateExplorer(path, setDirs, setFiles, files, navigate);
+    updateExplorer(path, setDirs, setFiles, navigate, searchValue);
   }, [location.pathname]);
   return (
     <>
       <BlurBg show={showBlur}></BlurBg>
       <main
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setShowItemContext(false);
+          setCursorPos({ x: e.pageX, y: e.pageY });
+          setShowContext(true);
+        }}
         className={`${classes.main} ${isDragOver ? classes.dragOver : ""}`}
-        onClick={() => setShowContext(false)}
+        onClick={() => {
+          setShowItemContext(false);
+          setShowContext(false);
+        }}
         onDragOver={(e) => {
           e.preventDefault();
           if (e.dataTransfer.types.includes("Files")) setIsDragOver(true);
@@ -177,29 +188,38 @@ export function Explorer() {
           setSearchValue={setSearchValue}
           onChangeSearch={(e) => {
             setSearchValue(e.target.value);
-            updateExplorer(
-              path,
-              setDirs,
-              setFiles,
-              files,
-              navigate,
-              e.target.value
-            );
+            updateExplorer(path, setDirs, setFiles, navigate, e.target.value);
           }}
           files={files}
         />
         <div className={classes.fileContainer}>
-          {dirs.map((f, i) => (
+          {dirs.map((d, i) => (
             <Dir
-              contextHandle={(e) => contextHandle(e, f.name, "dir")}
+              contextHandle={(e) => contextHandle(e, d.name, "dir")}
               key={i}
               path={path}
-              name={f.name}
-              icon={f.icon}
+              name={d.name}
+              icon={d.icon}
               setDirs={setDirs}
               setFiles={setFiles}
               files={files}
-              show={f.show}
+              show={d.show}
+              isFavourite={d.favourite}
+              onClickStar={async () => {
+                const curr_path = path ? path + "/" : "";
+                if (!d.favourite) {
+                  await addFavDir(`${curr_path}${d.name}`);
+                } else if (d.favourite) {
+                  await rmFavDir(`${curr_path}${d.name}`);
+                }
+                setDirs((prev) =>
+                  prev.map((dir) =>
+                    dir.name === d.name
+                      ? { ...dir, favourite: !dir.favourite }
+                      : dir
+                  )
+                );
+              }}
             />
           ))}
           {files.map((f, i) => {
@@ -239,6 +259,15 @@ export function Explorer() {
           setProgressFiles={setProgressFiles}
         />
       </main>
+      <ContextMenu
+        show={showContext}
+        setShow={setShowContext}
+        path={path}
+        x={cursorPos.x}
+        y={cursorPos.y}
+        setShowCreateDir={setShowCreateDirPopup}
+        setShowBlur={setShowBlur}
+      ></ContextMenu>
       <NamePopup
         title={"Rename"}
         value={renamePopupValue}
@@ -265,15 +294,15 @@ export function Explorer() {
         setShowBlur={setShowBlur}
         onConfirm={handleDelete}
       ></ConfirmPopup>
-      <ContextMenu
+      <ItemContextMenu
         x={cursorPos.x}
         y={cursorPos.y}
-        setShowContext={setShowContext}
+        setShowContext={setShowItemContext}
         setShowBlur={setShowBlur}
         setShowRenamePopup={setShowRenamePopup}
-        show={showContext}
+        show={showItemContext}
         setShowConfirmPopup={setShowConfirmPopup}
-      ></ContextMenu>
+      ></ItemContextMenu>
       <FullScreenImg
         src={fullScreenImgSrc}
         setSrc={setFullScreenImgSrc}

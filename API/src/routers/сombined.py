@@ -1,4 +1,4 @@
-from src.schemas.сombined import *
+from src.schemas.response.сombined import *
 from fastapi import APIRouter, Request, Response
 from src import services 
 

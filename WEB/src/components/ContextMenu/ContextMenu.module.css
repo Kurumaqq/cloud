@@ -1,9 +1,9 @@
 .contextMenu {
+  position: absolute;
   background-color: rgba(0, 31, 52, 0.3);
   border: hsl(0, 0%, 18.82%) solid 1px;
   border-radius: 12px;
   backdrop-filter: blur(2px);
-  position: absolute;
 }
 .ul {
   margin: 0;
@@ -14,6 +14,8 @@
 
 .button {
   all: unset;
+  display: flex;
+  align-items: center;
   padding: 7px;
   cursor: pointer;
   border-radius: 10px;

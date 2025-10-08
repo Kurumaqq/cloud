@@ -5,12 +5,38 @@ import { getCookie } from "../utils.js";
 const API_BASE = config.APIURL;
 
 export const listDirs = async (path) =>
-  axios.get(`${API_BASE}/dirs/list/${encodeURIComponent(path)}`, {
+  axios.get(`${API_BASE}/dirs/list/${path}`, {
     withCredentials: true,
     headers: {
       "X-CSRF-TOKEN": getCookie("csrf_access_token"),
     },
   });
+
+export const addFavDir = async (path) => {
+  axios.post(
+    `${API_BASE}/dirs/add-favourite?path=${path}`,
+    {},
+    {
+      withCredentials: true,
+      headers: {
+        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+      },
+    }
+  );
+};
+
+export const rmFavDir = async (path) => {
+  await axios.post(
+    `${API_BASE}/dirs/rm-favourite?path=${encodeURIComponent(path)}`,
+    {},
+    {
+      withCredentials: true,
+      headers: {
+        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+      },
+    }
+  );
+};
 
 export const createDir = async (path) => {
   return axios.post(
@@ -28,9 +54,8 @@ export const createDir = async (path) => {
 export const renameDir = (path, new_name) => {
   return axios.post(
     `${API_BASE}/dirs/rename`,
-    {},
+    { path: path, new_name: new_name },
     {
-      params: { path: path, new_name: new_name },
       withCredentials: true,
       headers: {
         "X-CSRF-TOKEN": getCookie("csrf_access_token"),

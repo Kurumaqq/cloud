@@ -2,7 +2,7 @@ from src.utils import check_path, check_dir, check_token, resolve_path
 from src.errors.combined import *
 from src.config import Config
 from fastapi import Request, Response
-from src.schemas import *
+from src.schemas.response.сombined import *
 import shutil
 import psutil
 import platform

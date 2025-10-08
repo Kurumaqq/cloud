@@ -12,13 +12,13 @@ export default function Dir({
   setFiles,
   setDirs,
   show,
+  isFavourite,
+  onClickStar,
 }) {
-  const [showStar, setShowStar] = useState(false);
+  const [starShow, setStarShow] = useState(false);
   const [starActive, setStarActive] = useState(false);
-  const [constStarActive, setConstStarActive] = useState(false);
   const icon_path = "/icons/folder";
   const navigate = useNavigate();
-  path ? (path += "/") : null;
 
   function openFolder() {
     navigate(name);
@@ -26,8 +26,8 @@ export default function Dir({
 
   return show ? (
     <div
-      onMouseEnter={() => setShowStar(true)}
-      onMouseLeave={() => setShowStar(false)}
+      onMouseEnter={() => setStarShow(true)}
+      onMouseLeave={() => setStarShow(false)}
       onClick={openFolder}
       draggable={true}
       onDragStart={(e) => {
@@ -60,20 +60,20 @@ export default function Dir({
     >
       <img draggable={false} src={`${icon_path}/${icon}`} alt="folder" />
       <div className={classes.foldername}>{name}</div>
-      {showStar ? (
+      {starShow || isFavourite ? (
         <button
           onMouseEnter={() => setStarActive(true)}
           onMouseLeave={() => setStarActive(false)}
-          className={classes.starBtn}
           onClick={(e) => {
             e.stopPropagation();
-            setConstStarActive((prev) => !prev);
+            onClickStar();
           }}
+          className={classes.starBtn}
         >
           <img
             className={classes.starIcon}
             src={`/icons/${
-              starActive || constStarActive ? "star-active" : "star-inactive"
+              starActive || isFavourite ? "star-active" : "star-inactive"
             }.svg`}
             alt=""
           />
