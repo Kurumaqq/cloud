@@ -11,16 +11,13 @@ export default function LoginForm() {
 
   const handleClick = () => {
     axios
-      .post(`${config.APIURL}/login`, {
-        username: username,
-        password: password,
-      })
+      .post(
+        `${config.APIURL}/login`,
+        { username, password },
+        { withCredentials: true }
+      )
       .then((response) => {
-        localStorage.setItem("accessToken", response.data.token);
-        console.log(localStorage.getItem("accessToken"));
-        if (response.data.token) {
-          navigate("/root");
-        }
+        navigate("/root");
       })
       .catch((error) => {
         console.log(error);

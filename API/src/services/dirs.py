@@ -8,19 +8,24 @@ from src.utils import (
     copy_dir_thread,
     resolve_path,
 )
-from urllib.parse import unquote
 from src.schemas.dirs import *
 from src.errors.dirs import *
 from src.config import Config
-from fastapi import Request
-from pathlib import Path
+from fastapi import Request, Response
 import platform
+import stat
+import os
 import shutil
 
 config = Config()
 
-async def list_dirs(path: str, request: Request) -> ListDirsResponse:
-    check_token(request)
+
+async def list_dirs(
+    path: str, 
+    request: Request, 
+    response: Response
+) -> ListDirsResponse:
+    await check_token(request, response)
 
     src_dir = resolve_path(path)
     check_path(path)
@@ -30,8 +35,8 @@ async def list_dirs(path: str, request: Request) -> ListDirsResponse:
     return ListDirsResponse(status="ok", dirs=dirs, message="Dirs listed successfully.")
 
 
-async def size_dir(path: str, request: Request) -> SizeDirResponse:
-    check_token(request)
+async def size_dir(path: str, request: Request, response: Response) -> SizeDirResponse:
+    await check_token(request, response)
     check_path(path)
 
     src_dir = resolve_path(path)
@@ -54,9 +59,10 @@ async def size_dir(path: str, request: Request) -> SizeDirResponse:
     )
 
 
-async def create_dir(path: str, request: Request) -> CreateDirResponse:
-    if path and path[0] == "/": path = path[1:]
-    check_token(request)
+async def create_dir(
+    path: str, request: Request, response: Response
+) -> CreateDirResponse:
+    await check_token(request, response)
     check_path(path)
 
     src_dir = resolve_path(path)
@@ -66,8 +72,10 @@ async def create_dir(path: str, request: Request) -> CreateDirResponse:
     )
 
 
-async def rename_dir(path: str, new_path: str, request: Request) -> RenameDirResponse:
-    check_token(request)
+async def rename_dir(
+    path: str, new_path: str, request: Request, response: Response
+) -> RenameDirResponse:
+    await check_token(request, response)
     check_paths([path, new_path])
 
     new_name = resolve_path(new_path).name
@@ -87,8 +95,10 @@ async def rename_dir(path: str, new_path: str, request: Request) -> RenameDirRes
     )
 
 
-async def copy_dir(dir_path: str, copy_path: str, request: Request) -> CopyDirResponse:
-    check_token(request)
+async def copy_dir(
+    dir_path: str, copy_path: str, request: Request, response: Response
+) -> CopyDirResponse:
+    await check_token(request, response)
     check_paths([dir_path, copy_path])
 
     src_dir = resolve_path(dir_path)
@@ -109,14 +119,20 @@ async def copy_dir(dir_path: str, copy_path: str, request: Request) -> CopyDirRe
     )
 
 
-async def delete_dir(path: str, request: Request) -> DeleteDirResponse:
-    check_token(request)
+async def delete_dir(
+    path: str, request: Request, response: Response
+) -> DeleteDirResponse:
+    await check_token(request, response)
     check_path(path)
 
     src_dir = resolve_path(path)
     check_dir(src_dir)
 
-    shutil.rmtree(src_dir)
+    def remove_readonly(func, path, excinfo):
+        os.chmod(path, stat.S_IWRITE) 
+        func(path)
+
+    shutil.rmtree(src_dir, onerror=remove_readonly)
 
     return DeleteDirResponse(
         status="ok",

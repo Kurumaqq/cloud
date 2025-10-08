@@ -1,21 +1,19 @@
-from src.errors.combined import (
-    InvalidPathHttpError,
-    PathTraversalHttpError,
-    InvalidToken,
-)
+from src.errors.combined import PathTraversalHttpError
 from src.errors.files import FileNotFoundHttpError, NotFileHttpError
 from src.errors.dirs import DirNotFoundHttpError, NotDirHttpError
 from fastapi.exceptions import HTTPException
-from src.config import Config
+from src.config import Config, authx, config_authx
 from pathlib import Path
-from fastapi import Request
+from fastapi import Request, Response
 import asyncio
 import jwt
 import bcrypt
 import shutil
+from authx.exceptions import AuthXException
 from jwt import decode, exceptions
 from urllib.parse import unquote
 import json
+
 
 config = Config()
 
@@ -62,14 +60,42 @@ def check_dir(path: Path) -> bool:
     return True
 
 
-def check_token(request: Request | str):
-    if isinstance(request, str):
-        token = request
-    elif "Authorization" in request.headers:
-        token = request.headers["Authorization"]
-    else:
-        raise HTTPException(401, detail="Invalid token")
-    return decode_jwt(token)
+async def check_token(request: Request, response: Response):
+    access_token = request.cookies.get(config_authx.JWT_ACCESS_COOKIE_NAME)
+    refresh_token = request.cookies.get(config_authx.JWT_REFRESH_COOKIE_NAME)
+
+    if access_token:
+        try:
+            payload = await authx.access_token_required(request)
+            return payload 
+        except AuthXException:
+            pass
+
+    if refresh_token:
+        try:
+            payload = await authx.refresh_token_required(request)
+            uid = payload.sub
+
+            if response:
+                new_access_token = authx.create_access_token(uid=uid)
+                authx.set_access_cookies(
+                        new_access_token, 
+                        response, 
+                        int(config_authx.JWT_ACCESS_TOKEN_EXPIRES.total_seconds())
+                        )
+
+                new_refresh_token = authx.create_refresh_token(uid=uid)
+                authx.set_refresh_cookies(
+                    new_refresh_token,
+                    response,
+                    int(config_authx.JWT_REFRESH_TOKEN_EXPIRES.total_seconds()),
+                )
+
+            return payload
+        except AuthXException:
+            raise HTTPException(status_code=401, detail="Session expired")
+
+    raise HTTPException(status_code=401, detail="Not authenticated")
 
 
 async def chunk_generator(path, chunk_size):
@@ -168,13 +194,11 @@ def change_favourite(key, new_value, t):
                     print(key, data["favourite"]["files"][i])
                     data["favourite"]["files"][i] = str(base_dir / new_value)
                     break
-            # data["favourite"]["files"][key] = str(base_dir / new_value)
         elif t == "dir":
             for i in range(len(data["favourite"]["dirs"])):
                 if data["favourite"]["dirs"][i] == key:
                     data["favourite"]["dirs"][i] = str(base_dir / new_value)
                     break
-            # data["favourite"]["dirs"][key] = str(base_dir / new_value)
     with open("src/config/config.json", "w") as f:
         json.dump(data, f, indent=4)
 
@@ -192,3 +216,45 @@ def decode_jwt(token: str):
 
 def check_password(password: str, hashed_password: str):
     return bcrypt.checkpw(password.encode(), hashed_password)
+
+
+async def auto_refresh_access_token(request: Request, response: Response):
+    access_token = request.cookies.get(config_authx.JWT_ACCESS_COOKIE_NAME)
+    refresh_token = request.cookies.get(config_authx.JWT_REFRESH_COOKIE_NAME)
+
+    if access_token:
+        try:
+            await authx.access_token_required(request)
+            return
+        except AuthXException:
+            pass
+
+    if refresh_token:
+        try:
+            payload = await authx.refresh_token_required(request)
+            uid = payload.sub
+
+            new_access_token = authx.create_access_token(uid=uid)
+            response.set_cookie(
+                config_authx.JWT_ACCESS_COOKIE_NAME,
+                new_access_token,
+                httponly=True,
+                secure=False,
+                samesite="Lax",
+                max_age=int(config_authx.JWT_ACCESS_TOKEN_EXPIRES.total_seconds()),
+            )
+
+            new_refresh_token = authx.create_refresh_token(uid=uid)
+            response.set_cookie(
+                config_authx.JWT_REFRESH_COOKIE_NAME,
+                new_refresh_token,
+                httponly=True,
+                secure=False,
+                samesite="Lax",
+                max_age=int(config_authx.JWT_REFRESH_TOKEN_EXPIRES.total_seconds()),
+            )
+            return
+        except AuthXException: 
+            raise HTTPException(status_code=401, detail="Session expired")
+
+    raise HTTPException(status_code=401, detail="Not authenticated")

@@ -1,13 +1,15 @@
 import axios from "axios";
 import config from "../../../public/config.json";
+import { getCookie } from "../utils";
 
 const API_BASE = config.APIURL;
 const CHUNK_SIZE = 5 * 1024 * 1024;
 
 export const listFiles = async (path) =>
-  axios.get(`${API_BASE}/files/list/${path}`, {
+  axios.get(`${API_BASE}/files/list/${encodeURIComponent(path)}`, {
+    withCredentials: true,
     headers: {
-      Authorization: localStorage.getItem("accessToken"),
+      "X-CSRF-TOKEN": getCookie("csrf_access_token"),
     },
   });
 
@@ -16,8 +18,9 @@ export const addFavFile = async (path) => {
     `${API_BASE}/files/add-favourite?path=${path}`,
     {},
     {
+      withCredentials: true,
       headers: {
-        Authorization: localStorage.getItem("accessToken"),
+        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
       },
     }
   );
@@ -28,22 +31,22 @@ export const rmFavFile = async (path) => {
     `${API_BASE}/files/rm-favourite?path=${path}`,
     {},
     {
+      withCredentials: true,
       headers: {
-        Authorization: localStorage.getItem("accessToken"),
+        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
       },
     }
   );
 };
 
 export const getFile = async (path) => {
-  const response = await axios.get(
-    `${API_BASE}/files/get/${path}?token=${localStorage.getItem(
-      "accessToken"
-    )}`,
-    {
-      responseType: "blob",
-    }
-  );
+  const response = await axios.get(`${API_BASE}/files/get/${path}`, {
+    withCredentials: true,
+    responseType: "blob",
+    headers: {
+      "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+    },
+  });
   const blob = response.data;
   const url = URL.createObjectURL(blob);
   return url;
@@ -54,8 +57,9 @@ export const copyFile = async (path, copy_path) => {
     `${API_BASE}/files/copy?file_path=${path}&copy_path=${copy_path}`,
     {},
     {
+      withCredentials: true,
       headers: {
-        Authorization: localStorage.getItem("accessToken"),
+        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
       },
     }
   );
@@ -65,8 +69,9 @@ export const getVideoThumbnail = async (path, time = 0.5) => {
   const response = await axios.get(
     `${API_BASE}/files/thumbnail/${path}?time=${time}`,
     {
+      withCredentials: true,
       headers: {
-        Authorization: localStorage.getItem("accessToken"),
+        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
       },
       responseType: "blob",
     }
@@ -85,8 +90,9 @@ export const moveFile = async (path, move_path) => {
       )}&move_path=${encodeURIComponent(move_path)}`,
       {},
       {
+        withCredentials: true,
         headers: {
-          Authorization: localStorage.getItem("accessToken"),
+          "X-CSRF-TOKEN": getCookie("csrf_access_token"),
         },
       }
     );
@@ -119,8 +125,9 @@ export const uploadFileApi = async (path, file, onProgress) => {
     formData.append("path", path);
 
     await axios.post(`${API_BASE}/files/upload`, formData, {
+      withCredentials: true,
       headers: {
-        Authorization: localStorage.getItem("accessToken"),
+        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
       },
       onUploadProgress: (progressEvent) => {
         if (progressEvent.total && onProgress) {
@@ -136,8 +143,9 @@ export const uploadFileApi = async (path, file, onProgress) => {
   }
 
   const response = await axios.get(`${API_BASE}/files/complete-upload`, {
+    withCredentials: true,
     headers: {
-      Authorization: localStorage.getItem("accessToken"),
+      "X-CSRF-TOKEN": getCookie("csrf_access_token"),
     },
     params: {
       uploadId,
@@ -158,8 +166,9 @@ export const renameFile = async (path, new_name) => {
     {},
     {
       params: { path: path, new_name: new_name },
+      withCredentials: true,
       headers: {
-        Authorization: localStorage.getItem("accessToken"),
+        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
       },
     }
   );
@@ -169,8 +178,9 @@ export const deleteFile = async (path) => {
   try {
     await axios.delete(`${API_BASE}/files/delete`, {
       params: { path },
+      withCredentials: true,
       headers: {
-        Authorization: localStorage.getItem("accessToken"),
+        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
       },
     });
   } catch (err) {
@@ -180,9 +190,7 @@ export const deleteFile = async (path) => {
 
 export const downloadFile = async (path) => {
   const a = document.createElement("a");
-  a.href = `${API_BASE}/files/download/${path}?token=${localStorage.getItem(
-    "accessToken"
-  )}`;
+  a.href = `${API_BASE}/files/download/${path}`;
   a.download = path.split("/").pop();
   a.click();
 };

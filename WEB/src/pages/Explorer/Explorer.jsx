@@ -90,11 +90,7 @@ export function Explorer() {
       setShowBlur(true);
       setShowFullScreenVideo(true);
       const curr_path = path ? path + "/" : "";
-      const videoUrl = `${
-        config.APIURL
-      }/files/get/${curr_path}${filename}?token=${localStorage.getItem(
-        "accessToken"
-      )}`;
+      const videoUrl = `${config.APIURL}/files/get/${curr_path}${filename}`;
       setFullScreenVideoSrc(videoUrl);
     }
   };

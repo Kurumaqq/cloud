@@ -1,7 +1,7 @@
 from src.utils import check_path, check_dir, check_token, resolve_path
 from src.errors.combined import *
 from src.config import Config
-from fastapi import Request
+from fastapi import Request, Response
 from src.schemas import *
 import shutil
 import psutil
@@ -9,8 +9,8 @@ import platform
 
 config = Config()
 
-async def combined_list(path: str, request: Request) -> ListCombinedResponse:
-        check_token(request)
+async def combined_list(path: str, request: Request, response: Response) -> ListCombinedResponse:
+        await check_token(request, response)
         check_path(path)
         src_dir = resolve_path(path)
         check_dir(src_dir)
@@ -29,13 +29,12 @@ async def combined_list(path: str, request: Request) -> ListCombinedResponse:
             message='Dirs and files listed successfully.'
         )
 
-async def disk(request: Request) -> GetDiskResponse:
-    check_token(request)
+async def disk(request: Request, response: Response) -> GetDiskResponse:
+    await check_token(request, response)
     partitions = psutil.disk_partitions(all=False)
     disk_total = 0
     disk_used = 0
     GB = 2**30
-
 
     if platform.system() == "Windows":
         for partition in partitions:
