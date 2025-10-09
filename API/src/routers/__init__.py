@@ -1,6 +1,6 @@
 from .dirs import router as dirs_router
 from .files import router as files_router
-from .сombined import router as combined_router
+from .oher import router as combined_router
 from .login import router as login_router
 from fastapi import APIRouter
 

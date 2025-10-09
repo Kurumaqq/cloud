@@ -19,6 +19,7 @@ import {
 import {
   addFavFile,
   deleteFile,
+  getFile,
   renameFile,
   rmFavFile,
 } from "../../utils/api/files";
@@ -84,7 +85,7 @@ export function Explorer() {
       setFullScreenImgName(filename);
       setShowBlur(true);
       setShowFullScreenImg(true);
-      getIcon(filename, path).then(setFullScreenImgSrc);
+      getFile(`${path}/${filename}`).then(setFullScreenImgSrc);
     } else if (videoExt.includes(ext)) {
       setFullScreenVideoSrc("");
       setFullScreenImgName(filename);

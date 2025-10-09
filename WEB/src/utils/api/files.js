@@ -9,7 +9,7 @@ export const listFiles = async (path) =>
   axios.get(`${API_BASE}/files/list/${encodeURIComponent(path)}`, {
     withCredentials: true,
     headers: {
-      "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+      "X-CSRF-TOKEN": getCookie("CSRF_ACCES_TOKEN"),
     },
   });
 
@@ -20,7 +20,7 @@ export const addFavFile = async (path) => {
     {
       withCredentials: true,
       headers: {
-        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+        "X-CSRF-TOKEN": getCookie("CSRF_ACCES_TOKEN"),
       },
     }
   );
@@ -33,17 +33,19 @@ export const rmFavFile = async (path) => {
     {
       withCredentials: true,
       headers: {
-        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+        "X-CSRF-TOKEN": getCookie("CSRF_ACCES_TOKEN"),
       },
     }
   );
 };
 
-export const getFile = async (path) => {
+export const getFile = async (path, width = null) => {
+  const params = width ? { width } : {};
   const response = await axios.get(`${API_BASE}/files/get/${path}`, {
+    params: params,
     withCredentials: true,
     headers: {
-      "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+      "X-CSRF-TOKEN": getCookie("CSRF_ACCES_TOKEN"),
     },
     responseType: "blob",
   });
@@ -59,18 +61,18 @@ export const copyFile = async (path, copy_path) => {
     {
       withCredentials: true,
       headers: {
-        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+        "X-CSRF-TOKEN": getCookie("CSRF_ACCES_TOKEN"),
       },
     }
   );
 };
 
-export const getVideoThumbnail = async (path, time = 0.5) => {
+export const getVideoThumbnail = async (path, width = 180, time = 0.5) => {
   const response = await axios.get(`${API_BASE}/files/thumbnail/${path}`, {
-    params: { time },
+    params: { time, width },
     withCredentials: true,
     headers: {
-      "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+      "X-CSRF-TOKEN": getCookie("CSRF_ACCES_TOKEN"),
     },
     responseType: "blob",
   });
@@ -85,7 +87,7 @@ export const moveFile = async (path, movePath) => {
     {
       withCredentials: true,
       headers: {
-        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+        "X-CSRF-TOKEN": getCookie("CSRF_ACCES_TOKEN"),
       },
     }
   );
@@ -113,7 +115,7 @@ export const uploadFileApi = async (path, file, onProgress) => {
     await axios.post(`${API_BASE}/files/upload`, formData, {
       withCredentials: true,
       headers: {
-        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+        "X-CSRF-TOKEN": getCookie("CSRF_ACCES_TOKEN"),
       },
       onUploadProgress: (progressEvent) => {
         if (progressEvent.total && onProgress) {
@@ -139,7 +141,7 @@ export const uploadFileApi = async (path, file, onProgress) => {
     {
       withCredentials: true,
       headers: {
-        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+        "X-CSRF-TOKEN": getCookie("CSRF_ACCES_TOKEN"),
       },
     }
   );
@@ -156,7 +158,7 @@ export const renameFile = async (path, newName) => {
     {
       withCredentials: true,
       headers: {
-        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+        "X-CSRF-TOKEN": getCookie("CSRF_ACCES_TOKEN"),
       },
     }
   );
@@ -168,7 +170,7 @@ export const deleteFile = async (path) => {
       params: { path },
       withCredentials: true,
       headers: {
-        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+        "X-CSRF-TOKEN": getCookie("CSRF_ACCES_TOKEN"),
       },
     });
   } catch (err) {

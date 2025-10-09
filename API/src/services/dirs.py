@@ -1,25 +1,20 @@
-from src.utils import (
-    check_path,
-    check_dir,
-    check_paths,
-    check_token,
+from src.utils.favourite import check_favourite, add_favourite, remove_favourite
+from src.schemas.response.dirs import *
+from src.schemas.request.dirs import *
+from fastapi import Request, Response
+from src.utils.filesystem import (
+    resolve_path,
     size_convert,
     unique_name,
     copy_dir_thread,
-    resolve_path,
-    check_favourite,
-    add_favourite,
-    remove_favourite,
 )
-from src.schemas.response.dirs import *
-from src.errors.dirs import *
-from src.schemas.request.dirs import *
+from src.utils.validators import *
 from src.config import Config
-from fastapi import Request, Response
+from src.errors.dirs import *
 import platform
+import shutil
 import stat
 import os
-import shutil
 
 config = Config()
 
@@ -27,11 +22,11 @@ config = Config()
 async def list_dirs(
     path: str, request: Request, response: Response
 ) -> ListDirsResponse:
-    await check_token(request, response)
+    await validate_auth(request, response)
 
     src_dir = resolve_path(path)
-    check_path(path)
-    check_dir(src_dir)
+    validate_path(path)
+    validate_dir(src_dir)
 
     dirs = []
 
@@ -55,11 +50,11 @@ async def list_dirs(
 
 
 async def size_dir(path: str, request: Request, response: Response) -> SizeDirResponse:
-    await check_token(request, response)
-    check_path(path)
+    await validate_auth(request, response)
+    validate_path(path)
 
     src_dir = resolve_path(path)
-    check_dir(src_dir)
+    validate_dir(src_dir)
 
     size = 0
     for f in src_dir.glob("**/*"):
@@ -81,8 +76,8 @@ async def size_dir(path: str, request: Request, response: Response) -> SizeDirRe
 async def create_dir(
     path: str, request: Request, response: Response
 ) -> CreateDirResponse:
-    await check_token(request, response)
-    check_path(path)
+    await validate_auth(request, response)
+    validate_path(path)
 
     src_dir = resolve_path(path)
     src_dir.mkdir(parents=True, exist_ok=False)
@@ -94,16 +89,16 @@ async def create_dir(
 async def rename_dir(
     data: RenameDirRequest, request: Request, response: Response
 ) -> RenameDirResponse:
-    await check_token(request, response)
+    await validate_auth(request, response)
     path = data.path
     new_name = data.new_name
-    check_paths([path, new_name])
+    validate_paths([path, new_name])
 
     src_new_name = resolve_path(new_name).name
     src_dir = resolve_path(path)
     old_name = src_dir.name
     dst_dir = src_dir.parent / src_new_name
-    check_dir(src_dir)
+    validate_dir(src_dir)
 
     dst_dir.parent.mkdir(parents=True, exist_ok=True)
 
@@ -119,15 +114,15 @@ async def rename_dir(
 async def copy_dir(
     data: CopyDirRequest, request: Request, response: Response
 ) -> CopyDirResponse:
-    await check_token(request, response)
+    await validate_auth(request, response)
     dir_path = data.dir_path
     copy_path = data.copy_path
 
-    check_paths([dir_path, copy_path])
+    validate_paths([dir_path, copy_path])
 
     src_dir = resolve_path(dir_path)
     dst_dir = resolve_path(copy_path)
-    check_dir(src_dir)
+    validate_dir(src_dir)
 
     target_path = unique_name(dst_dir, src_dir.name, "dir")
     name = target_path.name
@@ -146,11 +141,11 @@ async def copy_dir(
 async def delete_dir(
     path: str, request: Request, response: Response
 ) -> DeleteDirResponse:
-    await check_token(request, response)
-    check_path(path)
+    await validate_auth(request, response)
+    validate_path(path)
 
     src_dir = resolve_path(path)
-    check_dir(src_dir)
+    validate_dir(src_dir)
 
     def remove_readonly(func, path, excinfo):
         os.chmod(path, stat.S_IWRITE)
@@ -168,10 +163,10 @@ async def delete_dir(
 async def add_fav_dir(
     path: str, request: Request, response: Response
 ) -> AddFavouriteResponse:
-    await check_token(request, response)
+    await validate_auth(request, response)
     src_dir = resolve_path(path)
-    check_path(path)
-    check_dir(src_dir)
+    validate_path(path)
+    validate_dir(src_dir)
 
     add_favourite(path, "dir")
     return AddFavouriteResponse(
@@ -184,10 +179,10 @@ async def add_fav_dir(
 async def remove_fav_dir(
     path: str, request: Request, response: Response
 ) -> DeleteFavouriteResponse:
-    await check_token(request, response)
+    await validate_auth(request, response)
     src_dir = resolve_path(path)
-    check_path(path)
-    check_dir(src_dir)
+    validate_path(path)
+    validate_dir(src_dir)
 
     remove_favourite(path, "dir")
     return DeleteFavouriteResponse(

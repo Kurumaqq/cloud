@@ -52,8 +52,9 @@ async def get_file(
     path: str,
     request: Request,
     response: Response,
+    width: int =None,
 ) -> StreamingResponse:
-    return await services.get_file(path, request, response)
+    return await services.get_file(path, request, response, width)
 
 
 @router.post("/upload")

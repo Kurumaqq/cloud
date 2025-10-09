@@ -26,6 +26,19 @@ const getCachedIcon = async (name, path) => {
   return icon;
 };
 
+const MAX_ICON_CACHE = 400;
+let batchSize = 3;
+
+const maintainCacheLimit = () => {
+  const keys = Array.from(iconCache.keys());
+  if (keys.length > MAX_ICON_CACHE) {
+    const toDelete = keys.length - MAX_ICON_CACHE;
+    for (let i = 0; i < toDelete; i++) {
+      iconCache.delete(keys[i]);
+    }
+  }
+};
+
 export const updateFiles = async (path, setFilesList, searchValue) => {
   currentPath = path;
   currentSearchValue = searchValue;
@@ -38,31 +51,51 @@ export const updateFiles = async (path, setFilesList, searchValue) => {
       size: f.size,
     }));
 
-    if (currentPath !== path || currentSearchValue != searchValue) return;
+    if (currentPath !== path || currentSearchValue !== searchValue) return;
 
-    setFilesList(
+    setFilesList((prev) =>
       serverFiles.map((f) => {
         const shouldShow =
           !searchValue ||
           f.name.toLowerCase().includes(searchValue.toLowerCase());
+
+        const existing = prev.find((p) => p.name === f.name);
+
         return {
           name: f.name,
-          icon: null,
+          icon: existing?.icon ?? null,
           favourite: f.favourite,
           show: shouldShow,
         };
       })
     );
 
-    for (const f of serverFiles) {
-      const icon = await getCachedIcon(f.name, path);
-      setFilesList((prev) =>
-        prev.map((file) =>
-          file.name === f.name
-            ? { ...file, icon, favourite: f.favourite }
-            : file
-        )
+    for (let i = 0; i < serverFiles.length; i += batchSize) {
+      if (currentPath !== path || currentSearchValue !== searchValue) return;
+
+      const videoExt = ["mp4", "mov", "avi", "mkv", "wmv", "flv", "webm"];
+      const ext = serverFiles[i]["name"].split(".").pop().toLowerCase();
+      batchSize = videoExt.includes(ext) ? 1 : 3;
+
+      const batch = serverFiles.slice(i, i + batchSize);
+      const icons = await Promise.all(
+        batch.map((f) => getCachedIcon(f.name, path))
       );
+
+      maintainCacheLimit();
+
+      if (currentPath !== path || currentSearchValue !== searchValue) return;
+
+      setFilesList((prev) =>
+        prev.map((file) => {
+          const match = batch.find((b) => b.name === file.name);
+          if (!match || file.icon) return file;
+          const icon = icons[batch.indexOf(match)];
+          return { ...file, icon, favourite: match.favourite };
+        })
+      );
+
+      await new Promise((r) => setTimeout(r, 10));
     }
   } catch (err) {
     console.error(err);
@@ -149,7 +182,7 @@ export const getIcon = async (filename, path = "") => {
   const ext = filename.split(".").pop().toLowerCase();
 
   if (picExt.includes(ext)) {
-    return await getFile(`${path}${filename}`);
+    return await getFile(`${path}${filename}`, 240);
   } else if (videoExt.includes(ext)) {
     return await getVideoThumbnail(`${path}${filename}`);
   } else {

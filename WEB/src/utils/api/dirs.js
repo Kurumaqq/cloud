@@ -8,7 +8,7 @@ export const listDirs = async (path) =>
   axios.get(`${API_BASE}/dirs/list/${path}`, {
     withCredentials: true,
     headers: {
-      "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+      "X-CSRF-TOKEN": getCookie("CSRF_ACCES_TOKEN"),
     },
   });
 
@@ -19,7 +19,7 @@ export const addFavDir = async (path) => {
     {
       withCredentials: true,
       headers: {
-        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+        "X-CSRF-TOKEN": getCookie("CSRF_ACCES_TOKEN"),
       },
     }
   );
@@ -32,7 +32,7 @@ export const rmFavDir = async (path) => {
     {
       withCredentials: true,
       headers: {
-        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+        "X-CSRF-TOKEN": getCookie("CSRF_ACCES_TOKEN"),
       },
     }
   );
@@ -45,7 +45,7 @@ export const createDir = async (path) => {
     {
       withCredentials: true,
       headers: {
-        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+        "X-CSRF-TOKEN": getCookie("CSRF_ACCES_TOKEN"),
       },
     }
   );
@@ -58,7 +58,7 @@ export const renameDir = (path, new_name) => {
     {
       withCredentials: true,
       headers: {
-        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+        "X-CSRF-TOKEN": getCookie("CSRF_ACCES_TOKEN"),
       },
     }
   );
@@ -69,7 +69,7 @@ export const deleteDir = async (path) => {
     params: { path },
     withCredentials: true,
     headers: {
-      "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+      "X-CSRF-TOKEN": getCookie("CSRF_ACCES_TOKEN"),
     },
   });
 };

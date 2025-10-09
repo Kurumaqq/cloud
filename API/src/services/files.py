@@ -1,30 +1,23 @@
-from src.utils import (
-    check_path,
-    check_file,
-    check_paths,
-    check_token,
-    unique_name,
-    copy_thread,
-    resolve_path,
-    check_favourite,
-    add_favourite,
-    remove_favourite,
-    change_favourite,
-)
+from src.utils.filesystem import resolve_path, unique_name, copy_file_thread, iter_file
 from fastapi.responses import FileResponse, StreamingResponse
+from fastapi import UploadFile, Request, Form, Response, File
 from src.errors.dirs import NotDirHttpError
-from fastapi import UploadFile, Request, Form, Query, Response, File
 from src.schemas.response.files import *
 from src.schemas.request.files import *
+from src.utils.validators import *
+from moviepy import VideoFileClip
+from src.utils.favourite import (
+    check_favourite,
+    remove_favourite,
+    add_favourite,
+    change_favourite,
+)
 from src.errors.files import *
 from src.config import Config
 from pathlib import Path
-import shutil
-from PIL import Image
-import os
-from urllib.parse import unquote
-from moviepy import VideoFileClip
 from io import BytesIO
+from PIL import Image
+import shutil
 import os
 
 config = Config()
@@ -33,9 +26,10 @@ config = Config()
 async def list_files(
     path: str, request: Request, response: Response
 ) -> ListFilesResponse:
-    await check_token(request, response)
+    await validate_auth(request, response)
+    
     src_dir = resolve_path(path)
-    check_path(path)
+    validate_path(path)
 
     if not src_dir.is_dir():
         raise NotDirHttpError(path)
@@ -56,19 +50,17 @@ async def list_files(
     sorted_files = sorted(files, key=lambda x: (-x["favourite"], x["name"]))
 
     return ListFilesResponse(
-        status="ok", 
-        files=sorted_files, 
-        message="Files listed successfully."
+        status="ok", files=sorted_files, message="Files listed successfully."
     )
 
 
 async def add_fav_file(
     path: str, request: Request, response: Response
 ) -> AddFavouriteResponse:
-    await check_token(request, response)
+    await validate_auth(request, response)
     src_file = resolve_path(path)
-    check_path(path)
-    check_file(src_file)
+    validate_path(path)
+    validate_file(src_file)
 
     add_favourite(src_file, "file")
 
@@ -82,10 +74,10 @@ async def add_fav_file(
 async def remove_fav_file(
     path: str, request: Request, response: Response
 ) -> DeleteFavouriteResponse:
-    await check_token(request, response)
+    await validate_auth(request, response)
     src_file = resolve_path(path)
-    check_path(path)
-    check_file(src_file)
+    validate_path(path)
+    validate_file(src_file)
 
     remove_favourite(src_file, "file")
 
@@ -99,7 +91,7 @@ async def remove_fav_file(
 async def move_file(
     data: MoveFileRequest, request: Request, response: Response
 ) -> MoveFileResponse:
-    await check_token(request, response)
+    await validate_auth(request, response)
 
     path = data.path
     move_path = data.move_path
@@ -107,12 +99,12 @@ async def move_file(
     src_file = resolve_path(path)
     dst_file = resolve_path(move_path)
 
-    check_paths([path, move_path])
-    check_file(src_file)
+    validate_paths([path, move_path])
+    validate_file(src_file)
 
     target_path = unique_name(dst_file, src_file.name, "file")
 
-    await copy_thread(src_file, target_path)
+    await copy_file_thread(src_file, target_path)
     os.remove(src_file)
 
     if check_favourite(str(src_file), "file"):
@@ -130,11 +122,11 @@ async def move_file(
 async def download_file(
     path: str, request: Request, response: Response
 ) -> FileResponse:
-    await check_token(request, response)
+    await validate_auth(request, response)
 
     src_file = resolve_path(path)
-    check_path(path)
-    check_file(src_file)
+    validate_path(path)
+    validate_file(src_file)
 
     return FileResponse(
         path=str(src_file),
@@ -146,11 +138,11 @@ async def download_file(
 async def delete_file(
     path: str, request: Request, response: Response
 ) -> DeleteFilesResponse:
-    await check_token(request, response)
+    await validate_auth(request, response)
 
     src_file = resolve_path(path)
-    check_path(path)
-    check_file(src_file)
+    validate_path(path)
+    validate_file(src_file)
 
     src_file.unlink()
     if check_favourite(src_file, "file"):
@@ -170,9 +162,7 @@ async def upload_chunk(
     upload_id: str = Form(...),
     chunk_index: int = Form(...),
 ):
-    print("upload_id:", upload_id)
-    print("chunk_index:", chunk_index)
-    print("file:", file.filename)
+    await validate_auth(request, response)
 
     temp_dir = Path("tmp") / upload_id
     temp_dir.mkdir(parents=True, exist_ok=True)
@@ -193,7 +183,7 @@ async def complete_upload(
     filename: str = Form(...),
     path: str = Form("/"),
 ):
-    await check_token(request, response)
+    await validate_auth(request, response)
 
     target_dir = resolve_path(path)
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -222,10 +212,10 @@ async def read_file(
     request: Request,
     response: Response,
 ) -> ReadFileResponse:
-    await check_token(request, response)
+    await validate_auth(request, response)
     src_file = resolve_path(path)
-    check_path(path)
-    check_file(src_file)
+    validate_path(path)
+    validate_file(src_file)
 
     with open(src_file, "r", encoding="utf-8") as f:
         data = f.read()
@@ -242,25 +232,22 @@ async def rename_file(
     request: Request,
     response: Response,
 ) -> RenameFileResponse:
-    await check_token(request, response)
+    await validate_auth(request, response)
     path = data.path
     new_name = data.new_name
 
-    decoded_path = unquote(path)
-    decoded_new_name = unquote(new_name)
+    validate_paths([path, new_name_only])
+    validate_file(src_file)
 
-    src_file = resolve_path(decoded_path)
+    src_file = resolve_path(path)
     old_name = src_file.name
     old_ext = Path(old_name).suffix
 
-    new_name_only = Path(decoded_new_name).name
+    new_name_only = Path(new_name).name
     if "." not in new_name_only:
         new_name_only += old_ext
 
     dst_file = src_file.parent / new_name_only
-
-    check_paths([decoded_path, new_name_only])
-    check_file(src_file)
 
     src_file.rename(dst_file)
     change_favourite(str(src_file), str(dst_file), "file")
@@ -278,18 +265,18 @@ async def copy_file(
     request: Request,
     response: Response,
 ) -> CopyFileResponse:
-    await check_token(request, response)
+    await validate_auth(request, response)
     path = data.path
     copy_path = data.copy_path
 
     src_file = resolve_path(path)
     dst_file = resolve_path(copy_path)
 
-    check_paths([path, copy_path])
-    check_file(src_file)
+    validate_paths([path, copy_path])
+    validate_file(src_file)
 
     target_path = unique_name(dst_file, src_file.name, "file")
-    await copy_thread(src_file, target_path)
+    await copy_file_thread(src_file, target_path)
 
     if check_favourite(str(src_file), "file"):
         change_favourite(str(src_file), str(target_path), "file")
@@ -307,24 +294,40 @@ async def get_file(
     path: str,
     request: Request,
     response: Response,
+    width: int = None,
 ):
-    await check_token(request, response)
+    await validate_auth(request, response)
     src_file = resolve_path(path)
     file_size = os.path.getsize(src_file)
-    range_header = request.headers.get("range")
+    ext = os.path.splitext(src_file)[1].lower()
+    image_extensions = {".jpg", ".jpeg", ".png", ".webp"}
 
-    def iter_file(start=0, end=file_size):
-        with open(src_file, "rb") as f:
-            f.seek(start)
-            bytes_to_send = end - start + 1
-            chunk_size = 10 * 1024 * 1024
-            while bytes_to_send > 0:
-                read_size = min(chunk_size, bytes_to_send)
-                data = f.read(read_size)
-                if not data:
-                    break
-                bytes_to_send -= len(data)
-                yield data
+    if ext in image_extensions:
+        with Image.open(src_file) as img:
+            if width:
+                width = max(1, int(width))
+                aspect_ratio = img.height / img.width
+                height = max(1, int(width * aspect_ratio))
+                img = img.resize((width, height))
+
+            buf = BytesIO()
+            img_format = img.format or "PNG"
+
+            if img_format.upper() in {"JPEG", "JPG"} and img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+
+            if img_format.upper() in {"JPEG", "JPG"}:
+                img.save(buf, format="JPEG")
+                media_type = "image/jpeg"
+            else:
+                img.save(buf, format="PNG")
+                media_type = "image/png"
+
+            buf.seek(0)
+
+        return StreamingResponse(buf, media_type=media_type)
+
+    range_header = request.headers.get("range")
 
     if range_header:
         byte_range = range_header.replace("bytes=", "").split("-")
@@ -336,7 +339,7 @@ async def get_file(
             "Content-Length": str(end - start + 1),
         }
         return StreamingResponse(
-            iter_file(start, end),
+            iter_file(file_size, src_file, start),
             status_code=206,
             headers=headers,
             media_type="video/mp4",
@@ -346,12 +349,6 @@ async def get_file(
         return StreamingResponse(iter_file(), headers=headers, media_type="video/mp4")
 
 
-class ThumbnailResponse(BaseModel):
-    status: str
-    file_path: str
-    message: str
-
-
 async def gen_video_thumb(
     data: GenVideoThumbRequest, request: Request, response: Response
 ) -> StreamingResponse:
@@ -359,10 +356,10 @@ async def gen_video_thumb(
     time = data.time
     width = data.width
 
-    await check_token(request, response)
+    await validate_auth(request, response)
 
     src_file = resolve_path(path)
-    check_file(src_file)
+    validate_file(src_file)
 
     clip = VideoFileClip(src_file)
     frame = clip.get_frame(time)

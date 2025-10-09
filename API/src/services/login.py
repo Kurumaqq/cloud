@@ -1,71 +1,39 @@
 from fastapi import Response, Request
 from fastapi.exceptions import HTTPException
 from authx.exceptions import AuthXException
-from src.schemas.request.login import *
+from src.schemas.request.other import *
 from src.schemas.response.login import *
 from uuid import uuid1
+from src.errors.login import *
 from src.config import Config, authx, config_authx
-from src.utils import check_password
-
+from src.utils.validators import validate_user
 
 config = Config()
+
 
 async def login(data: UserRequest, response: Response):
     uid = str(uuid1())
     username = data.username
     password = data.password
-    if username == config.username and check_password(password, config.password):
-        token = authx.create_access_token(uid=uid)
-        refresh_token = authx.create_refresh_token(uid=uid)
+    validate_user(username, password)
 
-        authx.set_access_cookies(
-            token, response, int(config_authx.JWT_ACCESS_TOKEN_EXPIRES.total_seconds())
+    token = authx.create_access_token(uid=uid)
+    refresh_token = authx.create_refresh_token(uid=uid)
+
+    authx.set_access_cookies(
+        token, 
+        response, 
+        int(config_authx.JWT_ACCESS_TOKEN_EXPIRES.total_seconds())
+    )
+    authx.set_refresh_cookies(
+        refresh_token,
+        response,
+        int(config_authx.JWT_REFRESH_TOKEN_EXPIRES.total_seconds()),
+    )
+
+    return LoginResponse(
+        message="Login successful", 
+        uuid=uid, 
+        username=username
         )
-        authx.set_refresh_cookies(
-            refresh_token,
-            response,
-            int(config_authx.JWT_REFRESH_TOKEN_EXPIRES.total_seconds()),
-        )
 
-        return LoginResponse(
-            message="Login successful",
-            uuid=uid, 
-            username=username
-            )
-
-
-async def auto_refresh_access_token(request: Request, response: Response):
-    access_token = request.cookies.get(config_authx.JWT_ACCESS_COOKIE_NAME)
-    refresh_token = request.cookies.get(config_authx.JWT_REFRESH_COOKIE_NAME)
-
-    if access_token:
-        try:
-            await authx.access_token_required(request)
-            return
-        except AuthXException:
-            pass
-
-    if refresh_token:
-        try:
-            payload = await authx.refresh_token_required(request)
-            uid = payload.sub
-
-            new_access_token = authx.create_access_token(uid=uid)
-            authx.set_access_cookies(
-                new_access_token,
-                response,
-                int(config_authx.JWT_ACCESS_TOKEN_EXPIRES.total_seconds()),
-            )
-
-            new_refresh_token = authx.create_refresh_token(uid=uid)
-            authx.set_refresh_cookies(
-                new_refresh_token,
-                response,
-                int(config_authx.JWT_REFRESH_TOKEN_EXPIRES.total_seconds()),
-            )
-
-            return
-        except AuthXException:
-            raise HTTPException(status_code=401, detail="Session expired")
-
-    raise HTTPException(status_code=401, detail="Not authenticated")
