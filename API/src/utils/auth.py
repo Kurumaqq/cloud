@@ -25,7 +25,7 @@ async def auto_refresh_access_token(request: Request, response: Response):
                 config_authx.JWT_ACCESS_COOKIE_NAME,
                 new_access_token,
                 httponly=True,
-                secure=False,
+                secure=True,
                 samesite="Lax",
                 max_age=int(config_authx.JWT_ACCESS_TOKEN_EXPIRES.total_seconds()),
             )
@@ -35,7 +35,7 @@ async def auto_refresh_access_token(request: Request, response: Response):
                 config_authx.JWT_REFRESH_COOKIE_NAME,
                 new_refresh_token,
                 httponly=True,
-                secure=False,
+                secure=True,
                 samesite="Lax",
                 max_age=int(config_authx.JWT_REFRESH_TOKEN_EXPIRES.total_seconds()),
             )

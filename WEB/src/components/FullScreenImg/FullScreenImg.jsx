@@ -10,7 +10,7 @@ export default function FullScreenImg({
   setShow,
   setShowBlur,
   files,
-  setFullScreenImgSrc,
+  setSrc,
   path,
 }) {
   const [scale, setScale] = useState(1);
@@ -42,7 +42,7 @@ export default function FullScreenImg({
         setPosition({ x: 0, y: 0 });
 
         getIcon(nextImg.name, path).then((src) => {
-          setFullScreenImgSrc(src);
+          setSrc(src);
           setName(nextImg.name);
         });
       }
@@ -75,7 +75,7 @@ export default function FullScreenImg({
         setPosition({ x: 0, y: 0 });
 
         getIcon(prevImg.name, path).then((src) => {
-          setFullScreenImgSrc(src);
+          setSrc(src);
           setName(prevImg.name);
         });
       }

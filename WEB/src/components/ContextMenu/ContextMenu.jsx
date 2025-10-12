@@ -4,25 +4,18 @@ import { useNavigate } from "react-router-dom";
 
 export default function ContextMenu({
   show,
-  setShow,
   x,
   y,
   path,
-  setShowCreateDir,
-  setShowBlur,
+  onRefresh,
+  onBack,
+  onCreateDir,
 }) {
   if (!show) return null;
   const navigate = useNavigate();
 
-  const handleRefresh = () => {
-    window.location.reload();
-    setShow(false);
-  };
-
   const handleBack = () => {
-    console.log(path);
     path = path.split("/").slice(0, -1).join("/");
-    console.log(path);
     navigate(`/root/${path}`);
     setShow(false);
   };
@@ -40,13 +33,13 @@ export default function ContextMenu({
     >
       <ul className={classes.ul}>
         <Button icon={"./paste.svg"}>Paste</Button>
-        <Button icon={"./back.svg"} onClick={handleBack}>
+        <Button icon={"./back.svg"} onClick={onBack}>
           Back
         </Button>
-        <Button icon={"./refresh.svg"} onClick={handleRefresh}>
+        <Button icon={"./refresh.svg"} onClick={onRefresh}>
           Refresh
         </Button>
-        <Button icon={"./plus.svg"} onClick={handleCreateDir}>
+        <Button icon={"./plus.svg"} onClick={onCreateDir}>
           Create dir
         </Button>
       </ul>

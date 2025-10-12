@@ -1,6 +1,6 @@
 import axios from "axios";
 import config from "../../../public/config.json";
-import { getCookie } from "../utils.js";
+import { getCookie } from "../utils";
 
 const API_BASE = config.APIURL;
 

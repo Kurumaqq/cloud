@@ -6,7 +6,7 @@ from fastapi import APIRouter
 
 master_router = APIRouter()
 
-master_router.include_router(dirs_router)
 master_router.include_router(files_router)
+master_router.include_router(dirs_router)
 master_router.include_router(combined_router)
 master_router.include_router(login_router)

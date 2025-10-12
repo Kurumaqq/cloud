@@ -6,6 +6,7 @@ import shutil
 
 config = Config()
 
+# TODO: check in resolve_path 
 
 def resolve_path(path: str) -> Path:
     if path and path[0] == "/":
@@ -24,14 +25,12 @@ async def chunk_generator(path, chunk_size):
 
 
 def size_convert(value: int):
-    types = {-1: "bytes ", 0: "KB", 1: "MB", 2: "GB"}
-    for i in range(3):
-        print(i)
-        if value / 1024 > 1:
-            value /= 1024
-        else:
-            value = int(value * 100) / 100
-            return {"size": value, "type": types[i - 1]}
+    units = ["B", "KB", "MB", "GB", "TB"]
+    i = 0
+    while value >= 1024 and i < len(units) - 1:
+        value /= 1024
+        i += 1
+    return {"size": round(value, 2), "type": units[i]}
 
 
 def unique_name(dst: Path, name: str, t: str) -> Path:

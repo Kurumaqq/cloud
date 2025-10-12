@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login/Login";
 import { Explorer } from "./pages/Explorer/Explorer";
 import Redirect from "./pages/Redirect";
+
 export default function App() {
   return (
     <Router>

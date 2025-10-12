@@ -2,6 +2,8 @@ import json
 from pathlib import Path
 from src.config import Config
 
+# TODO: DRY
+
 config = Config()
 def check_favourite(path, t):
     base_dir = Path(config.base_dir)

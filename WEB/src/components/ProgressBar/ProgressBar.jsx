@@ -1,11 +1,6 @@
 import classes from "./ProgressBar.module.css";
 
-export default function ProgressBar({
-  files,
-  show,
-  setShow,
-  setProgressFiles,
-}) {
+export default function ProgressBar({ files, show, onClose }) {
   const iconDir = "/icons/files";
   return (
     <>
@@ -13,13 +8,7 @@ export default function ProgressBar({
         <div className={classes.main}>
           <div className={classes.header}>
             <p>Upload files</p>
-            <button
-              className={classes.closeBtn}
-              onClick={() => {
-                setProgressFiles([]);
-                setShow(false);
-              }}
-            >
+            <button className={classes.closeBtn} onClick={onClose}>
               <img
                 draggable={false}
                 className={classes.closeIcon}

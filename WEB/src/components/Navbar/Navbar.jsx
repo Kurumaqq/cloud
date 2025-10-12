@@ -5,11 +5,8 @@ import { useNavigate } from "react-router-dom";
 
 export default function Navbar({
   path,
-  setShowCreateDirPopup,
-  setShowBlur,
+  handlePlus,
   searchValue,
-  setSearchValue,
-  files,
   onChangeSearch,
 }) {
   const [pathValue, setPath] = useState(path);
@@ -17,7 +14,6 @@ export default function Navbar({
 
   function handleBack() {
     path = path.split("/").slice(0, -1).join("/");
-    console.log(path);
     navigate(`/${path}`);
   }
 
@@ -25,11 +21,6 @@ export default function Navbar({
     if (e.key === "Enter") {
       pathValue === "" ? navigate("/root") : navigate(`/${pathValue}`);
     }
-  }
-
-  function handlePlus() {
-    setShowCreateDirPopup(true);
-    setShowBlur(true);
   }
 
   useEffect(() => {

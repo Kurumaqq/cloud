@@ -1,7 +1,6 @@
 from src.utils.favourite import check_favourite, add_favourite, remove_favourite
 from src.schemas.response.dirs import *
 from src.schemas.request.dirs import *
-from fastapi import Request, Response
 from src.utils.filesystem import (
     resolve_path,
     size_convert,
@@ -18,29 +17,17 @@ import os
 
 config = Config()
 
-
-async def list_dirs(
-    path: str, request: Request, response: Response
-) -> ListDirsResponse:
-    await validate_auth(request, response)
-
+# TODO: add Depends for auth validation
+# TODO: thearding
+async def list_dirs(path: str) -> ListDirsResponse:
     src_dir = resolve_path(path)
     validate_path(path)
     validate_dir(src_dir)
 
-    dirs = []
-
-    for i in src_dir.iterdir():
-        if i.is_dir():
-            favourite = check_favourite(i, "dir")
-            print(i)
-            dirs.append(
-                {
-                    "name": i.name,
-                    "favourite": favourite,
-                    "size": 0,
-                }
-            )
+    dirs = [
+    {"name": i.name, "favourite": check_favourite(i, "dir"), "size": 0}
+    for i in src_dir.iterdir() if i.is_dir()
+    ]
 
     sorted_dirs = sorted(dirs, key=lambda x: (-x["favourite"], x["name"]))
 
@@ -49,10 +36,7 @@ async def list_dirs(
     )
 
 
-async def size_dir(path: str, request: Request, response: Response) -> SizeDirResponse:
-    await validate_auth(request, response)
-    validate_path(path)
-
+async def size_dir(path: str) -> SizeDirResponse:
     src_dir = resolve_path(path)
     validate_dir(src_dir)
 
@@ -62,7 +46,7 @@ async def size_dir(path: str, request: Request, response: Response) -> SizeDirRe
             if platform.system() == "Linux":
                 size += f.stat().st_blocks
             else:
-                ize += f.stat().st_size
+                zize += f.stat().st_size
 
     result = size_convert(size)
     return SizeDirResponse(
@@ -73,10 +57,7 @@ async def size_dir(path: str, request: Request, response: Response) -> SizeDirRe
     )
 
 
-async def create_dir(
-    path: str, request: Request, response: Response
-) -> CreateDirResponse:
-    await validate_auth(request, response)
+async def create_dir(path: str) -> CreateDirResponse:
     validate_path(path)
 
     src_dir = resolve_path(path)
@@ -86,10 +67,7 @@ async def create_dir(
     )
 
 
-async def rename_dir(
-    data: RenameDirRequest, request: Request, response: Response
-) -> RenameDirResponse:
-    await validate_auth(request, response)
+async def rename_dir(data: RenameDirRequest) -> RenameDirResponse:
     path = data.path
     new_name = data.new_name
     validate_paths([path, new_name])
@@ -111,10 +89,7 @@ async def rename_dir(
     )
 
 
-async def copy_dir(
-    data: CopyDirRequest, request: Request, response: Response
-) -> CopyDirResponse:
-    await validate_auth(request, response)
+async def copy_dir(data: CopyDirRequest) -> CopyDirResponse:
     dir_path = data.dir_path
     copy_path = data.copy_path
 
@@ -138,10 +113,7 @@ async def copy_dir(
     )
 
 
-async def delete_dir(
-    path: str, request: Request, response: Response
-) -> DeleteDirResponse:
-    await validate_auth(request, response)
+async def delete_dir(path: str) -> DeleteDirResponse:
     validate_path(path)
 
     src_dir = resolve_path(path)
@@ -160,10 +132,7 @@ async def delete_dir(
     )
 
 
-async def add_fav_dir(
-    path: str, request: Request, response: Response
-) -> AddFavouriteResponse:
-    await validate_auth(request, response)
+async def add_fav_dir(path: str) -> AddFavouriteResponse:
     src_dir = resolve_path(path)
     validate_path(path)
     validate_dir(src_dir)
@@ -176,10 +145,7 @@ async def add_fav_dir(
     )
 
 
-async def remove_fav_dir(
-    path: str, request: Request, response: Response
-) -> DeleteFavouriteResponse:
-    await validate_auth(request, response)
+async def remove_fav_dir(path: str) -> DeleteFavouriteResponse:
     src_dir = resolve_path(path)
     validate_path(path)
     validate_dir(src_dir)

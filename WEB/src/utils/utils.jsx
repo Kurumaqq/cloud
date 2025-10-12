@@ -1,11 +1,15 @@
 import {
+  addFavFile,
   getFile,
   getVideoThumbnail,
   listFiles,
+  rmFavFile,
   uploadFileApi,
 } from "./api/files";
-import { listDirs } from "./api/dirs";
+import { addFavDir, listDirs, rmFavDir } from "./api/dirs";
 import config from "../../public/config.json";
+import Dir from "../components/Folder/Folder";
+import File from "../components/File/File";
 
 let currentPath = null;
 let currentSearchValue = null;
@@ -102,7 +106,7 @@ export const updateFiles = async (path, setFilesList, searchValue) => {
   }
 };
 
-export const updateDirs = async (path, setDirs, navigate, searchValue) => {
+export const updateDirs = async (path, setDirs, searchValue) => {
   try {
     const res = await listDirs(path);
     const dirs = (res.data.dirs ?? []).map((d) => ({
@@ -130,15 +134,9 @@ export const updateDirs = async (path, setDirs, navigate, searchValue) => {
   }
 };
 
-export const updateExplorer = async (
-  path,
-  setDirs,
-  setFiles,
-  navigate,
-  searchValue
-) => {
+export const updateExplorer = async (path, setDirs, setFiles, searchValue) => {
   await Promise.all([
-    updateDirs(path, setDirs, navigate, searchValue),
+    updateDirs(path, setDirs, searchValue),
     updateFiles(path, setFiles, searchValue),
   ]);
 };
@@ -195,3 +193,63 @@ export function getCookie(name) {
   if (match) return match[2];
   return null;
 }
+
+export const renderFiles = (files, setFiles, path, onContext, onClick) =>
+  files.map((f, i) => {
+    return (
+      <File
+        contextHandle={(e) => onContext(e, f.name, "file")}
+        onClick={() => onClick(f.name)}
+        key={i}
+        path={path}
+        filename={f.name}
+        icon={f.icon}
+        show={f.show}
+        isFavourite={f.favourite}
+        onClickStar={async () => {
+          const curr_path = path ? path + "/" : "";
+          if (!f.favourite) {
+            await addFavFile(`${curr_path}${f.name}`);
+          } else if (f.favourite) {
+            await rmFavFile(`${curr_path}${f.name}`);
+          }
+          setFiles((prev) =>
+            prev.map((file) =>
+              file.name === f.name
+                ? { ...file, favourite: !file.favourite }
+                : file
+            )
+          );
+        }}
+      />
+    );
+  });
+
+export const renderDirs = (dirs, setDirs, files, setFiles, path, onContext) =>
+  dirs.map((d, i) => (
+    <Dir
+      contextHandle={(e) => onContext(e, d.name, "dir")}
+      key={i}
+      path={path}
+      name={d.name}
+      icon={d.icon}
+      setDirs={setDirs}
+      setFiles={setFiles}
+      files={files}
+      show={d.show}
+      isFavourite={d.favourite}
+      onClickStar={async () => {
+        const curr_path = path ? path + "/" : "";
+        if (!d.favourite) {
+          await addFavDir(`${curr_path}${d.name}`);
+        } else if (d.favourite) {
+          await rmFavDir(`${curr_path}${d.name}`);
+        }
+        setDirs((prev) =>
+          prev.map((dir) =>
+            dir.name === d.name ? { ...dir, favourite: !dir.favourite } : dir
+          )
+        );
+      }}
+    />
+  ));

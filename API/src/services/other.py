@@ -2,7 +2,6 @@ from src.utils.filesystem import resolve_path
 from src.utils.validators import *
 from src.errors.other import *
 from src.config import Config
-from fastapi import Request, Response
 from src.schemas.response.other import *
 import shutil
 import psutil
@@ -10,11 +9,7 @@ import platform
 
 config = Config()
 
-
-async def combined_list(
-    path: str, request: Request, response: Response
-) -> ListCombinedResponse:
-    await validate_auth(request, response)
+async def combined_list(path: str) -> ListCombinedResponse:
     validate_path(path)
     src_dir = resolve_path(path)
     validate_dir(src_dir)
@@ -36,8 +31,7 @@ async def combined_list(
     )
 
 
-async def disk(request: Request, response: Response) -> GetDiskResponse:
-    await validate_auth(request, response)
+async def disk() -> GetDiskResponse:
     partitions = psutil.disk_partitions(all=False)
     disk_total = 0
     disk_used = 0

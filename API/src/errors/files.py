@@ -16,6 +16,6 @@ class NotFileHttpError(HTTPException):
 class FileExistsHttpError(HTTPException):
     def __init__(self, path=''):
         super().__init__(
-            status_code=400, 
-            detail=f'File already exists: {path}'
-            )   
+            status_code=409, 
+            detail=f"File already exists: {path}"
+            )

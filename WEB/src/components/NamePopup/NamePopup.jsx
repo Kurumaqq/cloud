@@ -6,12 +6,11 @@ import ButtonConfirm from "../ButtonConfirm/ButtonConfirm";
 
 export default function NamePopup({
   show,
-  setShow,
+  title,
   value,
   onChange,
-  setShowBlur,
-  title,
   onConfirm,
+  onCancel,
 }) {
   const inputRef = useRef(null);
   useEffect(() => {
@@ -20,19 +19,9 @@ export default function NamePopup({
     }
   }, [show]);
 
-  function handleConfirm() {
-    setShow(false);
-    setShowBlur(false);
-    onConfirm();
-  }
-  function handleCancel() {
-    setShow(false);
-    setShowBlur(false);
-  }
-
   function handleKeyDown(e) {
-    if (e.key === "Escape") handleCancel();
-    if (e.key === "Enter") handleConfirm();
+    if (e.key === "Escape") onCancel();
+    if (e.key === "Enter") onConfirm();
   }
 
   return show ? (
@@ -47,8 +36,8 @@ export default function NamePopup({
         className={classes.input}
       />
       <div className={classes.btnContainer}>
-        <ButtonCancel onClick={handleCancel}></ButtonCancel>
-        <ButtonConfirm onClick={handleConfirm}></ButtonConfirm>
+        <ButtonCancel onClick={onCancel}></ButtonCancel>
+        <ButtonConfirm onClick={onConfirm}></ButtonConfirm>
       </div>
     </div>
   ) : (

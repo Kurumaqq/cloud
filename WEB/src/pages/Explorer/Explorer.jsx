@@ -1,34 +1,24 @@
-import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
-import File from "../../components/File/File";
 import ProgressBar from "../../components/ProgressBar/ProgressBar";
-import Dir from "../../components/Folder/Folder";
 import classes from "./Explorer.module.css";
-import ItemContextMenu from "../../components/ContextMenu/ItemContextMenu";
+import ItemContext from "../../components/ContextMenu/ItemContext";
 import NamePopup from "../../components/NamePopup/NamePopup";
 import BlurBg from "../../components/Blurbg/Blurbg";
 import ContextMenu from "../../components/ContextMenu/ContextMenu";
-import {
-  addFavDir,
-  createDir,
-  deleteDir,
-  rmFavDir,
-} from "../../utils/api/dirs";
-import {
-  addFavFile,
-  deleteFile,
-  getFile,
-  renameFile,
-  rmFavFile,
-} from "../../utils/api/files";
-import { renameDir } from "../../utils/api/dirs";
 import ConfirmPopup from "../../components/ConfirmPopup/ConfirmPopup";
-import FullScreenImg from "../../components/FullScreenImg/FullScreenImg";
 import FullScreenVideo from "../../components/FullScreenVideo/FullScreenVideo";
-import config from "../../../public/config.json";
-import { getIcon, updateExplorer, uploadFile } from "../../utils/utils";
+import { renderDirs, renderFiles, updateExplorer } from "../../utils/utils";
+import useMainHandlers from "../../hooks/useMain";
+import useNavBarHandler from "../../hooks/useNavbar";
+import useContextMenuHandler from "../../hooks/useContextMenu";
+import useRenameHandler from "../../hooks/useRename";
+import useCreateDirHandler from "../../hooks/useCreateDir";
+import useDeleteHandler from "../../hooks/useDelete";
+import useItemContext from "../../hooks/useItemContext";
+import useFileHandler from "../../hooks/useFile";
+import FullScreenImg from "../../components/FullScreenImg/FullScreenImg";
 
 export let currentSelect = { path: "", type: "" };
 export function Explorer() {
@@ -37,7 +27,6 @@ export function Explorer() {
     .replace("/root/", "")
     .replace(/\/{2,}/g, "/")
     .replace("/root", "");
-  const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState("");
   const [progressFiles, setProgressFiles] = useState([]);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -59,89 +48,110 @@ export function Explorer() {
   const [files, setFiles] = useState([]);
   const [dirs, setDirs] = useState([]);
 
-  const contextHandle = (e, name, type) => {
-    e.preventDefault();
-    e.stopPropagation();
-    currentSelect.path = path != "" ? `${path}/${name}` : name;
-    currentSelect.type = type;
-    setRenamePopupValue(currentSelect.path.split("/").pop());
-    setCursorPos({ x: e.pageX, y: e.pageY });
-    setShowContext(false);
-    setShowItemContext(true);
-  };
+  const refresh = useCallback(
+    (value) => {
+      const effectiveValue = value !== undefined ? value : searchValue;
+      updateExplorer(path, setDirs, setFiles, effectiveValue);
+    },
+    [path]
+  );
 
-  const handleCreateDir = async () => {
-    await createDir(`${path}/${createDirPopupValue}`);
-    setCreateDirPopupValue("");
-    updateExplorer(path, setDirs, setFiles, navigate, searchValue);
-  };
+  const {
+    handleClick: handleOnClickMain,
+    handleDragOver: handleDragOverMain,
+    handleDragLeave: handleDragLeaveMain,
+    handleDrop: handleDropMain,
+  } = useMainHandlers(
+    setShowItemContext,
+    setShowContext,
+    setIsDragOver,
+    path,
+    setProgressFiles,
+    setShowProgressFiles,
+    setDirs,
+    setFiles,
+    refresh
+  );
 
-  const handleOnClickFile = (filename) => {
-    const picExt = ["jpg", "jpeg", "png", "gif", "bmp", "svg"];
-    const videoExt = ["mp4", "webm", "ogg", "mkv"];
-    const ext = filename.split(".").pop().toLowerCase();
-    if (picExt.includes(ext)) {
-      setFullScreenImgSrc("");
-      setFullScreenImgName(filename);
-      setShowBlur(true);
-      setShowFullScreenImg(true);
-      getFile(`${path}/${filename}`).then(setFullScreenImgSrc);
-    } else if (videoExt.includes(ext)) {
-      setFullScreenVideoSrc("");
-      setFullScreenImgName(filename);
-      setShowBlur(true);
-      setShowFullScreenVideo(true);
-      const curr_path = path ? path + "/" : "";
-      const videoUrl = `${config.APIURL}/files/get/${curr_path}${filename}`;
-      setFullScreenVideoSrc(videoUrl);
-    }
-  };
+  const { handlePlus: handlePlusNavbar, onChangeSearch } = useNavBarHandler(
+    searchValue,
+    setSearchValue,
+    setShowCreateDirPopup,
+    setShowBlur,
+    refresh
+  );
 
-  const handleRename = async () => {
-    if (currentSelect.type == "file") {
-      await renameFile(
-        currentSelect.path,
-        `${path}/${renamePopupValue}`[0] != "/"
-          ? `${path}/${renamePopupValue}`
-          : renamePopupValue
-      );
-    } else if (currentSelect.type == "dir") {
-      await renameDir(
-        currentSelect.path,
-        `${path}/${renamePopupValue}`[0] != "/"
-          ? `${path}/${renamePopupValue}`
-          : renamePopupValue
-      );
-    }
-    updateExplorer(path, setDirs, setFiles, navigate, searchValue);
-  };
+  const {
+    handleBackContextMenu,
+    handleCreateDirContextMenu,
+    handleContextMenu,
+  } = useContextMenuHandler(
+    path,
+    setShowContext,
+    setShowCreateDirPopup,
+    setShowBlur,
+    setCursorPos,
+    setShowItemContext
+  );
 
-  const handleDelete = async () => {
-    if (currentSelect.type == "file") {
-      await deleteFile(currentSelect.path);
-    } else if (currentSelect.type == "dir") {
-      await deleteDir(currentSelect.path);
-    }
-    updateExplorer(path, setDirs, setFiles, navigate, searchValue);
-  };
-
-  const handleDrop = async (e) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    const files = e.dataTransfer.files;
-    await Promise.all(
-      Array.from(files).map((f) =>
-        uploadFile(
-          f,
-          path,
-          setProgressFiles,
-          setShowProgressFiles,
-          setDirs,
-          setFiles
-        )
-      )
+  const { handleConfirm: handleConfirmRename, handleCancelRename } =
+    useRenameHandler(
+      path,
+      currentSelect,
+      renamePopupValue,
+      setShowRenamePopup,
+      setShowBlur,
+      refresh
     );
-    updateExplorer(path, setDirs, setFiles, navigate, searchValue);
+
+  const { handleCreateDirConfirm, handleCreateDirCancel } = useCreateDirHandler(
+    path,
+    setShowCreateDirPopup,
+    setShowBlur,
+    setCreateDirPopupValue,
+    createDirPopupValue,
+    refresh
+  );
+
+  const { handleDeleteConfirm, handleDeleteCancel } = useDeleteHandler(
+    setShowBlur,
+    setShowConfirmPopup,
+    currentSelect,
+    refresh
+  );
+
+  const {
+    handleCopy: handleCopyItemContext,
+    handleDelete: handleDeleteItemContext,
+    handleDownload: handleDownloadItemContext,
+    contextHandle: contextItemHandle,
+    handleRename: handleRenameItemContext,
+  } = useItemContext(
+    setShowItemContext,
+    setShowRenamePopup,
+    setShowBlur,
+    setShowConfirmPopup,
+    setShowContext,
+    setCursorPos,
+    setRenamePopupValue,
+    currentSelect,
+    path
+  );
+
+  const { handleOnClickFile } = useFileHandler({
+    setFullScreenImgSrc,
+    setFullScreenImgName,
+    setShowBlur,
+    setShowFullScreenImg,
+    setFullScreenVideoSrc,
+    setShowFullScreenVideo,
+    path,
+    currentSelect,
+  });
+
+  const onCloseProgressBar = () => {
+    setProgressFiles([]);
+    setShowProgressFiles(false);
   };
 
   useEffect(() => {
@@ -153,167 +163,93 @@ export function Explorer() {
   }, [showFullScreenImg, showFullScreenVideo]);
 
   useEffect(() => {
-    updateExplorer(path, setDirs, setFiles, navigate, searchValue);
+    updateExplorer(path, setDirs, setFiles, searchValue);
   }, [location.pathname]);
+
   return (
     <>
       <BlurBg show={showBlur}></BlurBg>
       <main
-        onContextMenu={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setShowItemContext(false);
-          setCursorPos({ x: e.pageX, y: e.pageY });
-          setShowContext(true);
-        }}
+        onContextMenu={(e) => handleContextMenu(e)}
         className={`${classes.main} ${isDragOver ? classes.dragOver : ""}`}
-        onClick={() => {
-          setShowItemContext(false);
-          setShowContext(false);
-        }}
-        onDragOver={(e) => {
-          e.preventDefault();
-          if (e.dataTransfer.types.includes("Files")) setIsDragOver(true);
-        }}
-        onDragLeave={(e) => {
-          e.preventDefault();
-          setIsDragOver(false);
-        }}
-        onDrop={handleDrop}
+        onClick={handleOnClickMain}
+        onDragOver={(e) => handleDragOverMain(e)}
+        onDragLeave={(e) => handleDragLeaveMain(e)}
+        onDrop={handleDropMain}
       >
         <Navbar
-          setShowCreateDirPopup={setShowCreateDirPopup}
-          setShowBlur={setShowBlur}
+          handlePlus={handlePlusNavbar}
           path={`root/${decodeURIComponent(path)}`}
           searchValue={searchValue}
-          setSearchValue={setSearchValue}
-          onChangeSearch={(e) => {
-            setSearchValue(e.target.value);
-            updateExplorer(path, setDirs, setFiles, navigate, e.target.value);
-          }}
-          files={files}
+          onChangeSearch={(e) => onChangeSearch(e)}
         />
         <div className={classes.fileContainer}>
-          {dirs.map((d, i) => (
-            <Dir
-              contextHandle={(e) => contextHandle(e, d.name, "dir")}
-              key={i}
-              path={path}
-              name={d.name}
-              icon={d.icon}
-              setDirs={setDirs}
-              setFiles={setFiles}
-              files={files}
-              show={d.show}
-              isFavourite={d.favourite}
-              onClickStar={async () => {
-                const curr_path = path ? path + "/" : "";
-                if (!d.favourite) {
-                  await addFavDir(`${curr_path}${d.name}`);
-                } else if (d.favourite) {
-                  await rmFavDir(`${curr_path}${d.name}`);
-                }
-                setDirs((prev) =>
-                  prev.map((dir) =>
-                    dir.name === d.name
-                      ? { ...dir, favourite: !dir.favourite }
-                      : dir
-                  )
-                );
-              }}
-            />
-          ))}
-          {files.map((f, i) => {
-            return (
-              <File
-                contextHandle={(e) => contextHandle(e, f.name, "file")}
-                onClick={() => handleOnClickFile(f.name)}
-                key={i}
-                path={path}
-                filename={f.name}
-                icon={f.icon}
-                show={f.show}
-                isFavourite={f.favourite}
-                onClickStar={async () => {
-                  const curr_path = path ? path + "/" : "";
-                  if (!f.favourite) {
-                    await addFavFile(`${curr_path}${f.name}`);
-                  } else if (f.favourite) {
-                    await rmFavFile(`${curr_path}${f.name}`);
-                  }
-                  setFiles((prev) =>
-                    prev.map((file) =>
-                      file.name === f.name
-                        ? { ...file, favourite: !file.favourite }
-                        : file
-                    )
-                  );
-                }}
-              />
-            );
-          })}
+          {/* TODO: Take out in const renderDirs and renderFiles */}
+          {renderDirs(dirs, setDirs, files, setFiles, path, contextItemHandle)}
+          {renderFiles(
+            files,
+            setFiles,
+            path,
+            contextItemHandle,
+            handleOnClickFile
+          )}
         </div>
         <ProgressBar
-          setShow={setShowProgressFiles}
           show={showProgressFiles}
           files={progressFiles}
-          setProgressFiles={setProgressFiles}
+          onClose={onCloseProgressBar}
         />
       </main>
       <ContextMenu
         show={showContext}
-        setShow={setShowContext}
         path={path}
         x={cursorPos.x}
         y={cursorPos.y}
-        setShowCreateDir={setShowCreateDirPopup}
-        setShowBlur={setShowBlur}
+        onBack={handleBackContextMenu}
+        onRefresh={() => window.location.reload()}
+        onCreateDir={handleCreateDirContextMenu}
       ></ContextMenu>
       <NamePopup
         title={"Rename"}
         value={renamePopupValue}
         show={showRenamePopup}
         onChange={(e) => setRenamePopupValue(e.target.value)}
-        setShow={setShowRenamePopup}
-        setShowBlur={setShowBlur}
-        onConfirm={handleRename}
+        onConfirm={handleConfirmRename}
+        onCancel={handleCancelRename}
       ></NamePopup>
       <NamePopup
         title={"Name directory"}
         value={createDirPopupValue}
-        onChange={(e) => setCreateDirPopupValue(e.target.value)}
         show={showCreateDirPopup}
-        setShow={setShowCreateDirPopup}
-        setShowBlur={setShowBlur}
-        onConfirm={handleCreateDir}
+        onChange={(e) => setCreateDirPopupValue(e.target.value)}
+        onConfirm={handleCreateDirConfirm}
+        onCancel={handleCreateDirCancel}
       ></NamePopup>
       <ConfirmPopup
         show={showConfirmPopup}
         title={"Are you sure delete "}
         highlight={currentSelect.path.split("/").pop()}
-        setShow={setShowConfirmPopup}
-        setShowBlur={setShowBlur}
-        onConfirm={handleDelete}
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
       ></ConfirmPopup>
-      <ItemContextMenu
+      <ItemContext
         x={cursorPos.x}
         y={cursorPos.y}
-        setShowContext={setShowItemContext}
-        setShowBlur={setShowBlur}
-        setShowRenamePopup={setShowRenamePopup}
         show={showItemContext}
-        setShowConfirmPopup={setShowConfirmPopup}
-      ></ItemContextMenu>
+        onRename={handleRenameItemContext}
+        onCopy={handleCopyItemContext}
+        onDelete={handleDeleteItemContext}
+        onDownload={async () => handleDownloadItemContext()}
+      ></ItemContext>
       <FullScreenImg
         src={fullScreenImgSrc}
-        setSrc={setFullScreenImgSrc}
-        show={showFullScreenImg}
-        setShow={setShowFullScreenImg}
-        setShowBlur={setShowBlur}
-        files={files}
         name={fullScreenImgName}
         setName={setFullScreenImgName}
-        setFullScreenImgSrc={setFullScreenImgSrc}
+        show={showFullScreenImg}
+        setShowBlur={setShowBlur}
+        setShow={setShowFullScreenImg}
+        files={files}
+        setSrc={setFullScreenImgSrc}
         path={path}
       ></FullScreenImg>
       <FullScreenVideo

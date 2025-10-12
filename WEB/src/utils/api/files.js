@@ -151,7 +151,7 @@ export const uploadFileApi = async (path, file, onProgress) => {
   return response.data;
 };
 
-export const renameFile = async (path, newName) => {
+export const renameFile = (path, newName) => {
   return axios.post(
     `${API_BASE}/files/rename`,
     { path: path, new_name: newName },

@@ -7,7 +7,7 @@ class DirNotFoundHttpError(HTTPException):
             detail=f'Directories not found: {path}'
             )
 
-class DirsExistsHttpError(HTTPException):
+class DirExistsHttpError(HTTPException):
     def __init__(self, path=''):
         super().__init__(
             status_code=409, 

@@ -1,7 +1,6 @@
 from src.utils.filesystem import resolve_path, unique_name, copy_file_thread, iter_file
 from fastapi.responses import FileResponse, StreamingResponse
-from fastapi import UploadFile, Request, Form, Response, File
-from src.errors.dirs import NotDirHttpError
+from fastapi import UploadFile, Request, Form, File
 from src.schemas.response.files import *
 from src.schemas.request.files import *
 from src.utils.validators import *
@@ -19,45 +18,35 @@ from io import BytesIO
 from PIL import Image
 import shutil
 import os
+from redis import asyncio as aioredis
 
 config = Config()
+redis = aioredis.Redis(host="127.0.0.1", port=6379, password="1682", db=0)
+# redis = aioredis.Redis(host="192.168.0.12", port=6379, password="1682", db=0)
 
-
-async def list_files(
-    path: str, request: Request, response: Response
-) -> ListFilesResponse:
-    await validate_auth(request, response)
-    
+# TODO: thearding
+# TODO: add Depends for auth validation
+# TODO: Fix move
+async def list_files(path: str) -> ListFilesResponse:
     src_dir = resolve_path(path)
     validate_path(path)
 
-    if not src_dir.is_dir():
-        raise NotDirHttpError(path)
-
-    files = []
-
-    for i in src_dir.iterdir():
-        if i.is_file():
-            favourite = check_favourite(src_dir / i.name, "file")
-            files.append(
-                {
-                    "name": i.name,
-                    "favourite": favourite,
-                    "size": 0,
-                }
-            )
+    files = [
+        {"name": i.name, "favourite": check_favourite(i, "file"), "size": 0}
+        for i in src_dir.iterdir()
+        if i.is_file()
+    ]
 
     sorted_files = sorted(files, key=lambda x: (-x["favourite"], x["name"]))
 
     return ListFilesResponse(
-        status="ok", files=sorted_files, message="Files listed successfully."
+        status="ok", 
+        files=sorted_files, 
+        message="Files listed successfully."
     )
 
 
-async def add_fav_file(
-    path: str, request: Request, response: Response
-) -> AddFavouriteResponse:
-    await validate_auth(request, response)
+async def add_fav_file(path: str) -> AddFavouriteResponse:
     src_file = resolve_path(path)
     validate_path(path)
     validate_file(src_file)
@@ -71,10 +60,7 @@ async def add_fav_file(
     )
 
 
-async def remove_fav_file(
-    path: str, request: Request, response: Response
-) -> DeleteFavouriteResponse:
-    await validate_auth(request, response)
+async def remove_fav_file(path: str) -> DeleteFavouriteResponse:
     src_file = resolve_path(path)
     validate_path(path)
     validate_file(src_file)
@@ -88,11 +74,7 @@ async def remove_fav_file(
     )
 
 
-async def move_file(
-    data: MoveFileRequest, request: Request, response: Response
-) -> MoveFileResponse:
-    await validate_auth(request, response)
-
+async def move_file(data: MoveFileRequest) -> MoveFileResponse:
     path = data.path
     move_path = data.move_path
 
@@ -119,11 +101,7 @@ async def move_file(
     )
 
 
-async def download_file(
-    path: str, request: Request, response: Response
-) -> FileResponse:
-    await validate_auth(request, response)
-
+async def download_file(path: str) -> FileResponse:
     src_file = resolve_path(path)
     validate_path(path)
     validate_file(src_file)
@@ -135,11 +113,7 @@ async def download_file(
     )
 
 
-async def delete_file(
-    path: str, request: Request, response: Response
-) -> DeleteFilesResponse:
-    await validate_auth(request, response)
-
+async def delete_file(path: str) -> DeleteFilesResponse:
     src_file = resolve_path(path)
     validate_path(path)
     validate_file(src_file)
@@ -156,14 +130,10 @@ async def delete_file(
 
 
 async def upload_chunk(
-    request: Request,
-    response: Response,
     file: UploadFile = File(...),
     upload_id: str = Form(...),
     chunk_index: int = Form(...),
 ):
-    await validate_auth(request, response)
-
     temp_dir = Path("tmp") / upload_id
     temp_dir.mkdir(parents=True, exist_ok=True)
 
@@ -176,15 +146,11 @@ async def upload_chunk(
 
 
 async def complete_upload(
-    request: Request,
-    response: Response,
     upload_id: str = Form(...),
     total_chunks: int = Form(...),
     filename: str = Form(...),
     path: str = Form("/"),
 ):
-    await validate_auth(request, response)
-
     target_dir = resolve_path(path)
     target_dir.mkdir(parents=True, exist_ok=True)
     target_file = target_dir / filename
@@ -203,16 +169,13 @@ async def complete_upload(
     shutil.rmtree(temp_dir)
 
     return UploadChunkResponse(
-        status="ok", filename=filename, message="Upload chunk is successfull"
+        status="ok",
+        filename=filename,
+        message="Upload chunk is successful"
     )
 
 
-async def read_file(
-    path: str,
-    request: Request,
-    response: Response,
-) -> ReadFileResponse:
-    await validate_auth(request, response)
+async def read_file(path: str) -> ReadFileResponse:
     src_file = resolve_path(path)
     validate_path(path)
     validate_file(src_file)
@@ -227,21 +190,17 @@ async def read_file(
     )
 
 
-async def rename_file(
-    data: RenameFileRequest,
-    request: Request,
-    response: Response,
-) -> RenameFileResponse:
-    await validate_auth(request, response)
+async def rename_file(data: RenameFileRequest) -> RenameFileResponse:
     path = data.path
     new_name = data.new_name
 
-    validate_paths([path, new_name_only])
-    validate_file(src_file)
+    validate_paths([path, new_name])
 
     src_file = resolve_path(path)
     old_name = src_file.name
     old_ext = Path(old_name).suffix
+
+    validate_file(src_file)
 
     new_name_only = Path(new_name).name
     if "." not in new_name_only:
@@ -260,12 +219,7 @@ async def rename_file(
     )
 
 
-async def copy_file(
-    data: CopyFileRequest,
-    request: Request,
-    response: Response,
-) -> CopyFileResponse:
-    await validate_auth(request, response)
+async def copy_file(data: CopyFileRequest) -> CopyFileResponse:
     path = data.path
     copy_path = data.copy_path
 
@@ -289,14 +243,7 @@ async def copy_file(
         message=f"File {src_file.name} copied to {copy_path} successfully.",
     )
 
-
-async def get_file(
-    path: str,
-    request: Request,
-    response: Response,
-    width: int = None,
-):
-    await validate_auth(request, response)
+async def get_file(path: str, request: Request, width: int = None):
     src_file = resolve_path(path)
     file_size = os.path.getsize(src_file)
     ext = os.path.splitext(src_file)[1].lower()
@@ -324,8 +271,9 @@ async def get_file(
                 media_type = "image/png"
 
             buf.seek(0)
+            data = buf.getvalue()
 
-        return StreamingResponse(buf, media_type=media_type)
+        return StreamingResponse(BytesIO(data), media_type=media_type)
 
     range_header = request.headers.get("range")
 
@@ -346,20 +294,26 @@ async def get_file(
         )
     else:
         headers = {"Content-Length": str(file_size), "Accept-Ranges": "bytes"}
-        return StreamingResponse(iter_file(), headers=headers, media_type="video/mp4")
+        return StreamingResponse(
+            iter_file(file_size, src_file, 0),
+            headers=headers,
+            media_type="video/mp4",
+        )
 
 
-async def gen_video_thumb(
-    data: GenVideoThumbRequest, request: Request, response: Response
-) -> StreamingResponse:
+async def gen_video_thumb(data: GenVideoThumbRequest) -> StreamingResponse:
     path = data.path
     time = data.time
     width = data.width
 
-    await validate_auth(request, response)
-
     src_file = resolve_path(path)
     validate_file(src_file)
+
+    cached = await redis.get(f"thumb:{path}:{time}:{width}")
+    if cached:
+        expire_time = 60 * 60 * 24 * 180
+        await redis.expire(f"thumb:{path}:{time}:{width}", expire_time)
+        return StreamingResponse(BytesIO(cached), media_type="image/png")
 
     clip = VideoFileClip(src_file)
     frame = clip.get_frame(time)
@@ -373,5 +327,9 @@ async def gen_video_thumb(
     buf = BytesIO()
     image.save(buf, format="PNG")
     buf.seek(0)
+
+    expire_time = 60 * 60 * 24 * 180
+    # expire_time = 3
+    await redis.set(f"thumb:{path}:{time}:{width}", buf.getvalue(), ex=expire_time)
 
     return StreamingResponse(buf, media_type="image/png")

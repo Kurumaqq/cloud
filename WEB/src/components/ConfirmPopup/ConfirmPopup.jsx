@@ -6,21 +6,9 @@ export default function ConfirmPopup({
   show,
   title,
   highlight,
-  setShow,
   onConfirm,
-  setShowBlur,
+  onCancel,
 }) {
-  function handleCancel() {
-    setShow(false);
-    setShowBlur(false);
-  }
-
-  function handleConfirm() {
-    onConfirm();
-    setShow(false);
-    setShowBlur(false);
-  }
-
   return show ? (
     <div className={classes.popup}>
       <p className={classes.title}>
@@ -28,8 +16,8 @@ export default function ConfirmPopup({
         <strong>{highlight.toUpperCase()}</strong>?
       </p>
       <div className={classes.actions}>
-        <ButtonCancel onClick={handleCancel}>No</ButtonCancel>
-        <ButtonConfirm onClick={handleConfirm}></ButtonConfirm>
+        <ButtonCancel onClick={onCancel}>No</ButtonCancel>
+        <ButtonConfirm onClick={onConfirm}></ButtonConfirm>
       </div>
     </div>
   ) : null;

@@ -1,6 +1,4 @@
-from fastapi import Response, Request
-from fastapi.exceptions import HTTPException
-from authx.exceptions import AuthXException
+from fastapi import Response
 from src.schemas.request.other import *
 from src.schemas.response.login import *
 from uuid import uuid1
