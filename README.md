@@ -1,12 +1,6 @@
 **QCloud** — secure and fast cloud storage built with **FastAPI** (backend) and **React** (frontend). You can quickly upload, download, and manage your files.
 
-## Table of Contents
-- [Features](#features)
-- [Technologies](#technologies)
 - [Installation](#installation--running)
-- [Project Structure](#project-structure)
-- [Planned Improvements](#planned-improvements)
-- [License](#license)
 
 ---
 **Featured**
