@@ -15,13 +15,12 @@ async def login(data: UserRequest, response: Response):
     password = data.password
     validate_user(username, password)
 
-    token = authx.create_access_token(uid=uid)
-    refresh_token = authx.create_refresh_token(uid=uid)
+    data = {"username": username}
+    token = authx.create_access_token(uid=uid, data=data)
+    refresh_token = authx.create_refresh_token(uid=uid, data=data)
 
     authx.set_access_cookies(
-        token, 
-        response, 
-        int(config_authx.JWT_ACCESS_TOKEN_EXPIRES.total_seconds())
+        token, response, int(config_authx.JWT_ACCESS_TOKEN_EXPIRES.total_seconds())
     )
     authx.set_refresh_cookies(
         refresh_token,
@@ -29,9 +28,4 @@ async def login(data: UserRequest, response: Response):
         int(config_authx.JWT_REFRESH_TOKEN_EXPIRES.total_seconds()),
     )
 
-    return LoginResponse(
-        message="Login successful", 
-        uuid=uid, 
-        username=username
-        )
-
+    return LoginResponse(message="Login successful", uuid=uid, username=username)

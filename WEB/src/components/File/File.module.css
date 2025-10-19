@@ -1,7 +1,7 @@
 .file {
   position: relative;
-  width: 120px;
-  height: 120px;
+  width: 130px;
+  height: 130px;
   border-radius: 16px;
   display: flex;
   border: hsl(0, 0%, 18.82%) solid 1px;
@@ -20,14 +20,14 @@
 }
 
 .icon {
-  width: 40px;
-  height: 40px;
+  width: 60px;
+  height: 60px;
   margin-bottom: 8px;
 }
 
 .pic {
-  width: 95px;
-  height: 80px;
+  width: 90px;
+  height: 90px;
   border-radius: 5px;
   margin-bottom: 8px;
   object-fit: cover;
@@ -48,10 +48,23 @@
   position: absolute;
   top: 5px;
   right: 5px;
+  z-index: 1;
 }
 
 .starIcon {
   background-color: none;
   width: 25px;
   height: 25px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.titleIcon {
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
 }

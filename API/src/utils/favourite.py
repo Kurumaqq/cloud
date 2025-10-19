@@ -1,58 +1,54 @@
 import json
 from pathlib import Path
 from src.config import Config
-
+import aiofiles 
 # TODO: DRY
 
 config = Config()
-def check_favourite(path, t):
+async def check_favourite(path, t):
     base_dir = Path(config.base_dir)
-    with open("src/config/config.json", "r") as f:
-        data = json.load(f)
-        if str(base_dir / path) in data["favourite"]["files"] and t == "file":
-            return True
-        if str(base_dir / path) in data["favourite"]["dirs"] and t == "dir":
-            return True
+    async with aiofiles.open(config.path, "r") as f:
+        content = await f.read()
+    data = json.loads(content)
+    if str(base_dir / path) in data["favourite"][f"{t}s"]:
+        return True
+
     return False
 
-
-def add_favourite(path, t):
+async def add_favourite(path, t):
     base_dir = Path(config.base_dir)
-    with open("src/config/config.json", "r") as f:
-        data = json.load(f)
-        if t == "file":
-            data["favourite"]["files"].append(str(base_dir / path))
-        elif t == "dir":
-            data["favourite"]["dirs"].append(str(base_dir / path))
-    with open("src/config/config.json", "w") as f:
-        json.dump(data, f, indent=4)
+    src_path = str(base_dir / path)
+    async with aiofiles.open(config.path, "r") as f:
+        content = await f.read()
+    data = json.loads(content)
+    if src_path in data["favourite"][f"{t}s"]:
+        return {"status": "error", "message": f"{path} is already exists"}
+    data["favourite"][f"{t}s"].append(src_path)
+    async with aiofiles.open(config.path, "w") as f:
+        await f.write(json.dumps(data, indent=4))
 
-
-def remove_favourite(path, t):
+async def remove_favourite(path, t):
     base_dir = Path(config.base_dir)
-    with open("src/config/config.json", "r") as f:
-        data = json.load(f)
-        if t == "file":
-            data["favourite"]["files"].remove(str(base_dir / path))
-        elif t == "dir":
-            data["favourite"]["dirs"].remove(str(base_dir / path))
-    with open("src/config/config.json", "w") as f:
-        json.dump(data, f, indent=4)
+    src_path = str(base_dir / path)
+    async with aiofiles.open(config.path, "r") as f:
+        content = await f.read()
+        data = json.loads(content)
+    if src_path not in data["favourite"][f"{t}s"]:
+        return {"status": "error", "message": f"{path} is not exists"}
+    data["favourite"][f"{t}s"].remove(src_path)
+    async with aiofiles.open(config.path, "w") as f:
+        await f.write(json.dumps(data, indent=4))
 
-
-def change_favourite(key, new_value, t):
+async def change_favourite(path, new_value, t):
     base_dir = Path(config.base_dir)
-    with open("src/config/config.json", "r") as f:
-        data = json.load(f)
-        if t == "file":
-            for i in range(len(data["favourite"]["files"])):
-                if data["favourite"]["files"][i] == key:
-                    data["favourite"]["files"][i] = str(base_dir / new_value)
-                    break
-        elif t == "dir":
-            for i in range(len(data["favourite"]["dirs"])):
-                if data["favourite"]["dirs"][i] == key:
-                    data["favourite"]["dirs"][i] = str(base_dir / new_value)
-                    break
-    with open("src/config/config.json", "w") as f:
-        json.dump(data, f, indent=4)
+    src_path = str(base_dir / path)
+    src_new_path = str(base_dir / new_value)
+    async with aiofiles.open(config.path, "r") as f:
+        content = await f.read()
+        data = json.loads(content)
+        for i in range(len(data["favourite"][f"{t}s"])):
+            if  data["favourite"][f"{t}s"][i] == src_path:
+                data["favourite"][f"{t}s"][i] = src_new_path
+                async with aiofiles.open(config.path, "w") as f:
+                    await f.write(json.dumps(data, indent=4))
+                return {"status": "ok"}

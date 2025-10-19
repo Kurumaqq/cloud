@@ -53,7 +53,7 @@ export function Explorer() {
       const effectiveValue = value !== undefined ? value : searchValue;
       updateExplorer(path, setDirs, setFiles, effectiveValue);
     },
-    [path]
+    [path, searchValue]
   );
 
   const {

@@ -9,16 +9,16 @@ export default function useRenameHandler(
   setShowBlur,
   refresh
 ) {
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (currentSelect.type == "file") {
-      renameFile(
+      await renameFile(
         currentSelect.path,
         `${path}/${renamePopupValue}`[0] != "/"
           ? `${path}/${renamePopupValue}`
           : renamePopupValue
       );
     } else if (currentSelect.type == "dir") {
-      renameDir(
+      await renameDir(
         currentSelect.path,
         `${path}/${renamePopupValue}`[0] != "/"
           ? `${path}/${renamePopupValue}`
@@ -27,7 +27,7 @@ export default function useRenameHandler(
     }
     setShowRenamePopup(false);
     setShowBlur(false);
-    refresh();
+    await refresh();
   };
 
   const handleCancelRename = () => {
@@ -35,5 +35,6 @@ export default function useRenameHandler(
     setShowBlur(false);
   };
 
-  return { handleConfirm, handleCancelRename };q
+  return { handleConfirm, handleCancelRename };
+  q;
 }

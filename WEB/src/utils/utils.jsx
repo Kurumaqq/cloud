@@ -46,7 +46,6 @@ const maintainCacheLimit = () => {
 export const updateFiles = async (path, setFilesList, searchValue) => {
   currentPath = path;
   currentSearchValue = searchValue;
-
   try {
     const res = await listFiles(path);
     const serverFiles = (res.data.files ?? []).map((f) => ({
@@ -98,10 +97,9 @@ export const updateFiles = async (path, setFilesList, searchValue) => {
           return { ...file, icon, favourite: match.favourite };
         })
       );
-
-      await new Promise((r) => setTimeout(r, 10));
     }
   } catch (err) {
+    setFilesList([]);
     console.error(err);
   }
 };

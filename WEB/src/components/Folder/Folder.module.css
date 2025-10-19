@@ -1,7 +1,7 @@
 .folder {
   position: relative;
-  width: 120px;
-  height: 120px;
+  width: 130px;
+  height: 130px;
   border-radius: 16px;
   display: flex;
   border: hsl(0, 0%, 18.82%) solid 1px;
@@ -20,15 +20,15 @@
 }
 
 .folder img {
-  width: 40px;
-  height: 40px;
+  width: 60px;
+  height: 60px;
   margin-bottom: 8px;
 }
 
 .foldername {
   font-size: 13px;
   color: white;
-  max-width: 100px;
+  max-width: 115px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

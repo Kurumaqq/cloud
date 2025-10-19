@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import classes from "./FullScreenImg.module.css";
 import { getIcon } from "../../utils/utils";
+import { getFile } from "../../utils/api/files";
 
 export default function FullScreenImg({
   src,
@@ -38,10 +39,10 @@ export default function FullScreenImg({
       modalRef.current.focus();
 
       if (nextImg) {
-        setScale(1);
+        setScale(0.5);
         setPosition({ x: 0, y: 0 });
 
-        getIcon(nextImg.name, path).then((src) => {
+        getFile(`${path}/${nextImg.name}`).then((src) => {
           setSrc(src);
           setName(nextImg.name);
         });
@@ -71,10 +72,10 @@ export default function FullScreenImg({
       modalRef.current.focus();
 
       if (prevImg) {
-        setScale(1);
+        setScale(0.5);
         setPosition({ x: 0, y: 0 });
 
-        getIcon(prevImg.name, path).then((src) => {
+        getFile(`${path}/${prevImg.name}`).then((src) => {
           setSrc(src);
           setName(prevImg.name);
         });

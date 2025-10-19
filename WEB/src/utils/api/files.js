@@ -41,7 +41,8 @@ export const rmFavFile = async (path) => {
 
 export const getFile = async (path, width = null) => {
   const params = width ? { width } : {};
-  const response = await axios.get(`${API_BASE}/files/get/${path}`, {
+  const cleanPath = path.startsWith("/") ? path.slice(1) : path;
+  const response = await axios.get(`${API_BASE}/files/get/${cleanPath}`, {
     params: params,
     withCredentials: true,
     headers: {
@@ -67,7 +68,7 @@ export const copyFile = async (path, copy_path) => {
   );
 };
 
-export const getVideoThumbnail = async (path, width = 180, time = 0.5) => {
+export const getVideoThumbnail = async (path, width = 240, time = 0.5) => {
   const response = await axios.get(`${API_BASE}/files/thumbnail/${path}`, {
     params: { time, width },
     withCredentials: true,

@@ -9,28 +9,6 @@ import platform
 
 config = Config()
 
-async def combined_list(path: str) -> ListCombinedResponse:
-    validate_path(path)
-    src_dir = resolve_path(path)
-    validate_dir(src_dir)
-
-    dirs = []
-    files = []
-    for i in src_dir.iterdir():
-        if i.is_file():
-            files.append(str(i.as_posix()))
-        elif i.is_dir():
-            dirs.append(str(i.as_posix()))
-
-    return ListCombinedResponse(
-        status="ok",
-        dirs=dirs,
-        files=files,
-        all=dirs + files,
-        message="Dirs and files listed successfully.",
-    )
-
-
 async def disk() -> GetDiskResponse:
     partitions = psutil.disk_partitions(all=False)
     disk_total = 0

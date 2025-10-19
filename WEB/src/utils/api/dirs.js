@@ -51,8 +51,8 @@ export const createDir = async (path) => {
   );
 };
 
-export const renameDir = (path, new_name) => {
-  return axios.post(
+export const renameDir = async (path, new_name) => {
+  return await axios.post(
     `${API_BASE}/dirs/rename`,
     { path: path, new_name: new_name },
     {

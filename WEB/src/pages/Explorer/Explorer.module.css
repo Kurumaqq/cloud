@@ -24,9 +24,9 @@ body {
 .fileContainer {
   display: grid;
   margin-top: 80px;
-  grid-template-columns: repeat(auto-fill, 120px);
-  gap: 20px;
-  padding: 30px;
+  grid-template-columns: repeat(auto-fill, 130px);
+  gap: 25px;
+  padding-top: 30px;
   justify-content: center;
 }
 

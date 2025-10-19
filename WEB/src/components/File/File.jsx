@@ -17,6 +17,7 @@ export default function File({
 
   const [starShow, setStarShow] = useState(false);
   const [starActive, setStarActive] = useState(isFavourite);
+  const ext = filename.split(".").pop();
   return show ? (
     <div
       onDragStart={(e) => {
@@ -44,7 +45,16 @@ export default function File({
           e.target.src = `/icons/files/document.svg`;
         }}
       />
-      <div className={classes.filename}>{filename}</div>
+      <div className={classes.title}>
+        {isUrl ? (
+          <img
+            className={classes.titleIcon}
+            src={`/icons/files/${ext}.svg`}
+            alt=""
+          />
+        ) : null}
+        <span className={classes.filename}>{filename}</span>
+      </div>
       {starShow || isFavourite ? (
         <button
           className={classes.starBtn}
