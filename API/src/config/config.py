@@ -14,7 +14,7 @@ config_authx.JWT_ACCESS_COOKIE_NAME = "ACCESS_TOKEN"
 config_authx.JWT_REFRESH_COOKIE_NAME = "REFRESH_TOKEN"
 config_authx.JWT_SECRET_KEY = secret_key
 config_authx.JWT_TOKEN_LOCATION = ["cookies"]
-config_authx.JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=7)
+config_authx.JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=30)
 config_authx.JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=180)
 config_authx.JWT_ACCESS_CSRF_COOKIE_NAME = "CSRF_ACCES_TOKEN"
 config_authx.JWT_REFRESH_CSRF_COOKIE_NAME = "CSRF_REFRESH_TOKEN"

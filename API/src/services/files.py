@@ -1,4 +1,4 @@
-from src.utils.filesystem import resolve_path, unique_name, copy_file_thread, iter_file
+from src.utils.filesystem import resolve_path, unique_name, iter_file
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi import UploadFile, Request, Form, File
 from src.schemas.response.files import *
@@ -21,25 +21,26 @@ import os
 from redis import asyncio as aioredis
 from io import BytesIO
 from fastapi.responses import StreamingResponse
+from src.utils.auth import auto_refresh_access_token
 from PIL import Image
 import os
 import av, hashlib, datetime
 import aiofiles, asyncio
-# from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from src.utils.database import get_rights
+from src.utils.validators import validate_right
+from sqlalchemy.ext.asyncio import create_async_engine
 
 config = Config()
 redis = aioredis.Redis(host="127.0.0.1", port=6379, password="1682", db=0)
 engine = create_async_engine(
     "postgresql+asyncpg://kurumaqq:1682@192.168.0.12/cloud",
 )
-# redis = aioredis.Redis(host="192.168.0.12", port=6379, password="1682", db=0)
+redis = aioredis.Redis(host="192.168.0.12", port=6379, password="1682", db=0)
 
-# TODO: thearding
-# TODO: add Depends for auth validation
-# TODO: Fix move
 async def list_files(path: str, request: Request) -> ListFilesResponse:
     src_dir = resolve_path(path)
     await validate_user_dirs(request, src_dir)
+    await validate_right(request, "READ", src_dir)
     validate_dir(src_dir)
     validate_path(path)
 
@@ -56,10 +57,10 @@ async def list_files(path: str, request: Request) -> ListFilesResponse:
         message="Files listed successfully."
     )
 
-
 async def add_fav_file(path: str, request: Request) -> AddFavouriteResponse:
     src_file = resolve_path(path)
     await validate_user_dirs(request, src_file.parent)
+    await validate_right(request, "WRITE", src_file.parent)
     validate_path(path)
     validate_file(src_file)
 
@@ -70,10 +71,10 @@ async def add_fav_file(path: str, request: Request) -> AddFavouriteResponse:
         message=f"File {src_file.name} added to favourite successfully.",
     )
 
-
 async def remove_fav_file(path: str, request: Request) -> DeleteFavouriteResponse:
     src_file = resolve_path(path)
     await validate_user_dirs(request, src_file.parent)
+    await validate_right(request, "WRITE", src_file.parent)
     validate_path(path)
     validate_file(src_file)
 
@@ -84,15 +85,16 @@ async def remove_fav_file(path: str, request: Request) -> DeleteFavouriteRespons
         message=f"File {src_file.name} removed from favourite successfully.",
     )
 
-
 async def move_file(data: MoveFileRequest, request: Request) -> MoveFileResponse:
     path = data.path
     move_path = data.move_path
 
     src_file = resolve_path(path)
     await validate_user_dirs(request, src_file.parent)
+    await validate_right(request, "WRITE", src_file.parent)
     dst_file = resolve_path(move_path)
     await validate_user_dirs(request, dst_file.parent)
+    await validate_right(request, "WRITE", dst_file.parent)
 
     validate_paths([path, move_path])
     validate_file(src_file)
@@ -100,9 +102,7 @@ async def move_file(data: MoveFileRequest, request: Request) -> MoveFileResponse
     target_path = unique_name(dst_file, src_file.name, "file")
 
     # TODO: Return progress
-    await copy_file_thread(src_file, target_path)
-    os.remove(src_file)
-
+    await asyncio.to_thread(shutil.move, src_file, dst_file)
     await change_favourite(str(src_file), str(target_path), "file")
     return MoveFileResponse(
         status="ok",
@@ -112,10 +112,10 @@ async def move_file(data: MoveFileRequest, request: Request) -> MoveFileResponse
         message=f"File {src_file.name} moved to {move_path} successfully.",
     )
 
-
 async def download_file(path: str, request: Request) -> FileResponse:
     src_file = resolve_path(path)
     await validate_user_dirs(request, src_file.parent)
+    await validate_right(request, "READ", src_file.parent)
     validate_path(path)
     validate_file(src_file)
 
@@ -128,17 +128,17 @@ async def download_file(path: str, request: Request) -> FileResponse:
 async def delete_file(path: str, request: Request) -> DeleteFilesResponse:
     src_file = resolve_path(path)
     await validate_user_dirs(request, src_file.parent)
+    await validate_right(request, "DELETE", src_file.parent)
     validate_path(path)
     validate_file(src_file)
 
-    src_file.unlink()
+    await asyncio.to_thread(src_file.unlink)
     await remove_favourite(src_file, "file")
     return DeleteFilesResponse(
         status="ok",
         files=src_file.name,
         message=f"File {src_file.name} deleted successfully.",
     )
-
 
 async def upload_chunk(
     request: Request,
@@ -149,16 +149,20 @@ async def upload_chunk(
 ):
     src_dir = resolve_path(path)
     await validate_user_dirs(request, src_dir)
+    await validate_right(request, "WRITE", src_dir)
     temp_dir = Path("tmp") / upload_id
     temp_dir.mkdir(parents=True, exist_ok=True)
 
     chunk_path = temp_dir / f"{chunk_index:05d}.part"
-    with open(chunk_path, "wb") as f:
+    async with aiofiles.open(chunk_path, "wb") as f:
         while content := await file.read(10 * 1024 * 1024):
-            f.write(content)
+            await f.write(content)
 
-    return {"status": "ok", "chunkIndex": chunk_index}
-
+    return UploadChunkResponse(
+        status="ok", 
+        chunkIndex=chunk_index, 
+        message=f"chunk {chunk_index} upload succesful"
+        )
 
 async def complete_upload(
     request: Request,
@@ -168,6 +172,7 @@ async def complete_upload(
     path: str = Form("/"),
 ):
     target_dir = resolve_path(path)
+    await validate_right(request, "WRITE", target_dir.parent)
     target_dir.mkdir(parents=True, exist_ok=True)
     target_file = target_dir / filename
     await validate_user_dirs(request, target_file.parent)
@@ -179,57 +184,40 @@ async def complete_upload(
     temp_dir = Path("tmp") / upload_id
     temp_dir.mkdir(parents=True, exist_ok=True)
 
-    async with aiofiles.open(target_file, "wb") as outfile:
-        async for i in range(total_chunks):
+    async def read_chunk(chunk_path: Path) -> bytes:
+        def _read():
+            with open(chunk_path, "rb") as f:
+                return f.read()
+        return await asyncio.to_thread(_read)
+
+    async with aiofiles.open(target_file, "wb") as f:
+        for i in range(total_chunks):
             chunk_path = temp_dir / f"{i:05d}.part"
             if not chunk_path.exists():
                 raise FileNotFoundError(f"Chunk not found: {chunk_path}")
-            with aiofiles.open(chunk_path, "rb") as infile:
-                while True:
-                    chunk = await infile.read(1024 * 1024)
-                    if not chunk: break
-                    await outfile.write(chunk)
 
-    async with aiofiles.open(target_file, 'rb') as f:
-        content = await f.read()
-        await redis.set(cache_key, content)
+            chunk_data = await read_chunk(chunk_path)
 
+            await f.write(chunk_data)
 
-    # TODO: Thread 
-    shutil.rmtree(temp_dir)
-    return UploadChunkResponse(
+    await asyncio.to_thread(shutil.rmtree, temp_dir)
+    return CompleteUploadResponse(
         status="ok",
         filename=filename,
         message="Upload chunk is successful"
     )
 
-async def read_file(path: str, request: Request) -> ReadFileResponse:
-    src_file = resolve_path(path)
-    await validate_user_dirs(request, src_file.parent)
-    validate_path(path)
-    validate_file(src_file)
-
-    with open(src_file, "r", encoding="utf-8") as f:
-        data = f.read()
-
-    return ReadFileResponse(
-        status="ok",
-        content=data,
-        message=f"File {src_file.name} read successfully.",
-    )
-
 async def rename_file(data: RenameFileRequest, request: Request) -> RenameFileResponse:
     path = data.path
     new_name = data.new_name
-
     validate_paths([path, new_name])
 
-    src_file = resolve_path(path)
     await validate_user_dirs(request, src_file.parent)
+    await validate_right(request, "WRITE", src_file.parent)
+    src_file = resolve_path(path)
+    validate_file(src_file)
     old_name = src_file.name
     old_ext = Path(old_name).suffix
-
-    validate_file(src_file)
 
     new_name_only = Path(new_name).name
     if "." not in new_name_only:
@@ -246,21 +234,20 @@ async def rename_file(data: RenameFileRequest, request: Request) -> RenameFileRe
         message=f"File {old_name} renamed to {new_name_only} successfully.",
     )
 
-
 async def copy_file(data: CopyFileRequest, request: Request) -> CopyFileResponse:
     path = data.path
     copy_path = data.copy_path
+    validate_paths([path, copy_path])
 
     src_file = resolve_path(path)
     await validate_user_dirs(request, src_file.parent)
+    await validate_right(request, "WRITE", src_file.parent)
     dst_file = resolve_path(copy_path)
 
-    validate_paths([path, copy_path])
     validate_file(src_file)
 
     target_path = unique_name(dst_file, src_file.name, "file")
-    await copy_file_thread(src_file, target_path)
-
+    await asyncio.to_thread(shutil.copy, src_file, target_path)
     await change_favourite(str(src_file), str(target_path), "file")
     return CopyFileResponse(
         status="ok",
@@ -270,10 +257,10 @@ async def copy_file(data: CopyFileRequest, request: Request) -> CopyFileResponse
         message=f"File {src_file.name} copied to {copy_path} successfully.",
     )
 
-
 async def get_file(path: str, request: Request, width: int = None):
     src_file = resolve_path(path)
     await validate_user_dirs(request, src_file.parent)
+    await validate_right(request, "READ", src_file.parent)
     file_size = os.path.getsize(src_file)
     ext = os.path.splitext(src_file)[1].lower()
     image_extensions = {".jpg", ".jpeg", ".png", ".webp"}
@@ -328,7 +315,7 @@ async def get_file(path: str, request: Request, width: int = None):
                 ).strftime("%a, %d %b %Y %H:%M:%S GMT"),
             }
             return data, headers, media_type 
-        
+
         data, headers, media_type = await asyncio.to_thread(process_image, width)
         await redis.set(cache_key, data, ex=60 * 60 * 24 * 180)
         return StreamingResponse(
@@ -338,7 +325,6 @@ async def get_file(path: str, request: Request, width: int = None):
             )
 
     range_header = request.headers.get("range")
-
     if range_header:
         byte_range = range_header.replace("bytes=", "").split("-")
         start = int(byte_range[0])
@@ -362,7 +348,6 @@ async def get_file(path: str, request: Request, width: int = None):
             media_type="video/mp4",
         )
 
-
 async def gen_video_thumb(data: GenVideoThumbRequest, request: Request) -> StreamingResponse:
     path = data.path
     time = float(data.time)
@@ -370,6 +355,7 @@ async def gen_video_thumb(data: GenVideoThumbRequest, request: Request) -> Strea
 
     src_file = resolve_path(path)
     await validate_user_dirs(request, src_file.parent)
+    await validate_right(request, "READ", src_file.parent)
 
     cache_key = f"thumb:{path}:{width}"
     cached = await redis.get(cache_key)
@@ -384,42 +370,43 @@ async def gen_video_thumb(data: GenVideoThumbRequest, request: Request) -> Strea
         await redis.expire(cache_key, 60 * 60 * 24 * 180)
         return StreamingResponse(BytesIO(cached), media_type="image/webp", headers=headers)
 
-    container = av.open(src_file)
-    stream = container.streams.video[0]
+    def get_thumb():
+        container = av.open(src_file)
+        stream = container.streams.video[0]
 
-    container.seek(int(time * stream.average_rate))
+        container.seek(int(time * stream.average_rate))
+        frame = None
+        for packet in container.demux(stream):
+            for video_frame in packet.decode():
+                if video_frame.pts is not None:
+                    frame_time = float(video_frame.pts * video_frame.time_base)
+                    if frame_time >= time:
+                        frame = video_frame
+                        break
+            if frame:
+                break
 
-    frame = None
-    for packet in container.demux(stream):
-        for video_frame in packet.decode():
-            if video_frame.pts is not None:
-                frame_time = float(video_frame.pts * video_frame.time_base)
-                if frame_time >= time:
-                    frame = video_frame
-                    break
-        if frame:
-            break
+        if frame is None:
+            raise RuntimeError("No frame found at given time")
 
-    if frame is None:
-        raise RuntimeError("No frame found at given time")
+        img = frame.to_image()
 
-    img = frame.to_image()
+        w_percent = width / float(img.width)
+        h_size = int(float(img.height) * w_percent)
+        img = img.resize((width, h_size), Image.LANCZOS)
 
-    w_percent = width / float(img.width)
-    h_size = int(float(img.height) * w_percent)
-    img = img.resize((width, h_size), Image.LANCZOS)
+        buf = BytesIO()
+        img.save(buf, format="WEBP", lossless=True)
+        buf.seek(0)
+        return buf.getvalue()
 
-    buf = BytesIO()
-    img.save(buf, format="WEBP", lossless=True)
-    buf.seek(0)
-    data = buf.getvalue()
-
+    thumb = await asyncio.to_thread(get_thumb)
     headers = {
         "Cache-Control": "public, max-age=2592000",
-        "ETag": f'"{hashlib.md5(data).hexdigest()}"',
+        "ETag": f'"{hashlib.md5(thumb).hexdigest()}"',
         "Last-Modified": datetime.datetime.utcfromtimestamp(
             os.path.getmtime(src_file)
         ).strftime("%a, %d %b %Y %H:%M:%S GMT"),
     }
-    await redis.set(cache_key, data, ex=60 * 60 * 24 * 180)
-    return StreamingResponse(buf, media_type="image/webp", headers=headers)
+    await redis.set(cache_key, thumb, ex=60 * 60 * 24 * 180)
+    return StreamingResponse(BytesIO(thumb), media_type="image/webp", headers=headers)

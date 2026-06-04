@@ -1,5 +1,5 @@
 from sqlalchemy import String 
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column 
 
 
@@ -14,4 +14,4 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(50), unique=True)
     password: Mapped[str] = mapped_column(String(80))
     role: Mapped[str] = mapped_column(String(30), default="user")
-    owner_dirs: Mapped[dict[str, int]] = mapped_column(JSONB, default={})
+    owner_dirs: Mapped[dict[dict]] = mapped_column(JSONB, default={})

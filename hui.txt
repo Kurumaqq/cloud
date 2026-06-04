@@ -1,0 +1,1 @@
+vless://435e613e-ee9e-4f66-8178-abf81231036e@31.77.67.35:443?encryption=none&host=&path=%2F&security=none&type=ws#EGOR

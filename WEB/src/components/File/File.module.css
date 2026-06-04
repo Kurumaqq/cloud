@@ -26,9 +26,9 @@
 }
 
 .pic {
-  width: 90px;
-  height: 90px;
-  border-radius: 5px;
+  width: 120px;
+  height: 97px;
+  border-radius: 10px;
   margin-bottom: 8px;
   object-fit: cover;
   overflow: hidden;

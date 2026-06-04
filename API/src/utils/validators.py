@@ -11,48 +11,60 @@ from src.errors import (
     NotDirHttpError,
     InvalidCredentialsHttpError,
 )
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from src.model.user import User
-from sqlalchemy import select
+from src.utils.database import get_user
+from src.model import User
 
 config = Config()
-engine = create_async_engine(
-    "postgresql+asyncpg://kurumaqq:1682@192.168.0.12/cloud",
-)
-AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 
 async def validate_user(username: str, password: str):
-    async with AsyncSessionLocal() as session:
-        stm = select(User).where(User.username == username)    
-        result =  await session.execute(stm)
-        user = result.scalar_one_or_none()
+    user = await get_user(username)
+    if not user:
+        raise InvalidCredentialsHttpError()
+    if not validate_password(password, user.password):
+        raise InvalidCredentialsHttpError()
+    return True
 
-        if not user:
-            raise InvalidCredentialsHttpError()
-        
-        if not validate_password(password, user.password):
-            raise InvalidCredentialsHttpError()
+
+async def validate_right(request: Request, right: str, src_path: Path):
+    user = await get_user(request)
+    allowed_dirs = [Path(p).resolve() for p in user.owner_dirs.keys()]
+    for i in allowed_dirs:
+        if src_path == i or src_path.is_relative_to(i):
+            rights = user.owner_dirs[str(i)]["rights"]
+            if "*" in rights: return True
+            if user.role == "admin": return True
+            if right not in rights:
+                raise HTTPException(status_code=403, detail="Access denied")
+    return True
+
+
+async def validate_user_dirs(request: Request, src_path: Path):
+    access_token = request.cookies.get("ACCESS_TOKEN")
+
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    try:
+        decode_token = authx._decode_token(access_token)
+        username = decode_token.username
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    user = await get_user(username)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if user.role == "admin":
         return True
 
-async def validate_user_dirs(request: Request, path):
-    acces_token = request.cookies.get("ACCESS_TOKEN")
-    decode_token = authx._decode_token(acces_token.encode())
-    username = decode_token.username
-    async with AsyncSessionLocal() as session:
-        stm = select(User).where(User.username == username)
-        path = Path(str(path).replace("\\", "/").strip()).resolve()
-        result = await session.execute(stm)
-        user = result.scalar_one_or_none()
-        allowed_dirs = [Path(p).resolve() for p in user.owner_dirs.keys()]
+    allowed_dirs = [Path(p).resolve() for p in user.owner_dirs.keys()]
+    if not any(src_path == p or src_path.is_relative_to(p) for p in allowed_dirs):
+        raise HTTPException(status_code=403, detail="Access denied")
 
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        if user.role == "admin": return True
-        if not any(path == p or path.is_relative_to(p) for p in allowed_dirs):
-            raise HTTPException(status_code=403, detail="Access denied")    
+    return True
 
-        return True
 
 def validate_path(path: str) -> bool:
     path = path.lstrip("/")
@@ -93,15 +105,15 @@ def validate_dir(path: Path) -> bool:
     return True
 
 
-def validate_password(password: str, hashed_password: str):
-    return bcrypt.checkpw(password.encode(), hashed_password)
+def validate_password(password: str, hashed_password: str) -> bool:
+    if isinstance(hashed_password, str):
+        hashed_password = hashed_password.encode("utf-8")
+    return bcrypt.checkpw(password.encode("utf-8"), hashed_password)
 
 
 async def validate_auth(request: Request, response: Response):
     access_token = request.cookies.get(config_authx.JWT_ACCESS_COOKIE_NAME)
     refresh_token = request.cookies.get(config_authx.JWT_REFRESH_COOKIE_NAME)
-    decode_jwt = authx._decode_token(access_token)
-    username = decode_jwt.username
 
     if access_token:
         try:
@@ -112,25 +124,27 @@ async def validate_auth(request: Request, response: Response):
 
     if refresh_token:
         try:
-            data = {"username": username}
             payload = await authx.refresh_token_required(request)
             uid = payload.sub
 
+            username = getattr(payload, "username", None)
+
             if response:
+                # Если username есть в payload, добавляем его в новые токены
+                data = {"username": username} if username else {}
+
                 new_access_token = authx.create_access_token(uid=uid, data=data)
                 authx.set_access_cookies(
                     new_access_token,
                     response,
                     int(config_authx.JWT_ACCESS_TOKEN_EXPIRES.total_seconds()),
                 )
-
                 new_refresh_token = authx.create_refresh_token(uid=uid, data=data)
                 authx.set_refresh_cookies(
                     new_refresh_token,
                     response,
                     int(config_authx.JWT_REFRESH_TOKEN_EXPIRES.total_seconds()),
                 )
-
             return payload
         except AuthXException:
             raise HTTPException(status_code=401, detail="Session expired")

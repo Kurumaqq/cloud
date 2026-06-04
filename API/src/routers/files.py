@@ -23,12 +23,6 @@ async def download_file(path: str, request: Request) -> DownloadFileErrorRespons
 async def list_files(path: str, request: Request) -> ListFilesResponse:
     return await services.list_files(path, request)
 
-
-@router.get("/read/{path:path}", response_model=ReadFileResponse)
-async def read_file(path: str, request: Request) -> ReadFileResponse:
-    return await services.read_file(path, request)
-
-
 @router.get("/get/{path:path}")
 async def get_file(
     path: str,

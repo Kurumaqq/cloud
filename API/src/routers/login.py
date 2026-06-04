@@ -3,8 +3,13 @@ from fastapi import APIRouter, Response
 from src import services
 
 
-router = APIRouter(prefix="/login", tags=["login"])
+router = APIRouter(tags=["login"])
 
-@router.post("/")
+@router.post("/login")
 async def login(data: UserRequest, response: Response):
     return await services.login(data, response)
+
+
+@router.post("/logout")
+async def logout(response: Response):
+    return await services.logout(response)

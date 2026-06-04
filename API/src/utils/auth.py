@@ -4,6 +4,7 @@ from authx.exceptions import AuthXException
 
 config = Config()
 
+
 async def auto_refresh_access_token(request: Request, response: Response):
     access_token = request.cookies.get(config_authx.JWT_ACCESS_COOKIE_NAME)
     refresh_token = request.cookies.get(config_authx.JWT_REFRESH_COOKIE_NAME)
@@ -20,7 +21,11 @@ async def auto_refresh_access_token(request: Request, response: Response):
             payload = await authx.refresh_token_required(request)
             uid = payload.sub
 
-            new_access_token = authx.create_access_token(uid=uid)
+            username = getattr(payload, "username", None)
+
+            data = {"username": username} if username else {}
+
+            new_access_token = authx.create_access_token(uid=uid, data=data)
             response.set_cookie(
                 config_authx.JWT_ACCESS_COOKIE_NAME,
                 new_access_token,
@@ -30,7 +35,7 @@ async def auto_refresh_access_token(request: Request, response: Response):
                 max_age=int(config_authx.JWT_ACCESS_TOKEN_EXPIRES.total_seconds()),
             )
 
-            new_refresh_token = authx.create_refresh_token(uid=uid)
+            new_refresh_token = authx.create_refresh_token(uid=uid, data=data)
             response.set_cookie(
                 config_authx.JWT_REFRESH_COOKIE_NAME,
                 new_refresh_token,

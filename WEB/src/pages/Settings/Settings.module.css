@@ -1,0 +1,60 @@
+.sideBar {
+  position: fixed;
+  display: flex;
+  gap: 10px;
+  flex-direction: column;
+  margin: 20px;
+  left: 0;
+  top: 0;
+}
+
+.content {
+  display: flex;
+  justify-content: center;
+  margin: 5rem auto 0 auto;
+  margin-left: 200px;
+  padding: 0 20px;
+}
+
+.container {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.settingsDesc {
+  font-size: 20px;
+}
+
+.settingsPart {
+  display: flex;
+  gap: 20rem;
+  justify-content: space-between;
+  padding-bottom: 0.5rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  border-bottom: hsl(0, 0%, 19%) solid 1px;
+}
+
+/* /home/kurumaqq/cloud-data */
+.inputData {
+  all: unset;
+  max-width: 50rem;
+  padding: 10px;
+  border-radius: 10px;
+  border: hsl(0, 0%, 19%) solid 2px;
+}
+
+.passwordSection {
+  display: flex;
+  flex-direction: column;
+}
+
+.settingsChangePassword {
+  display: flex;
+  gap: 1rem;
+  flex-direction: column;
+  padding-bottom: 0.5rem;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: hsl(0, 0%, 19%) solid 1px;
+}

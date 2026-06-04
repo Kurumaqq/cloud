@@ -62,13 +62,3 @@ def iter_file(end, path, start=0):
                 break
             bytes_to_send -= len(data)
             yield data
-
-
-async def copy_dir_thread(src: Path, dst: Path):
-    await asyncio.to_thread(shutil.copytree, src, dst)
-    return dst
-
-
-async def copy_file_thread(src: Path, dst: Path):
-    await asyncio.to_thread(shutil.copy, src, dst)
-    return dst

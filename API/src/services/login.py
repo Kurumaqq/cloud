@@ -1,4 +1,4 @@
-from fastapi import Response
+from fastapi import Response, Depends
 from src.schemas.request.other import *
 from src.schemas.response.login import *
 from uuid import uuid1
@@ -13,7 +13,7 @@ async def login(data: UserRequest, response: Response):
     uid = str(uuid1())
     username = data.username
     password = data.password
-    validate_user(username, password)
+    await validate_user(username, password)
 
     data = {"username": username}
     token = authx.create_access_token(uid=uid, data=data)
@@ -29,3 +29,9 @@ async def login(data: UserRequest, response: Response):
     )
 
     return LoginResponse(message="Login successful", uuid=uid, username=username)
+
+async def logout(response: Response):
+    response.delete_cookie(key="ACCESS_TOKEN")
+    response.delete_cookie(key="REFRESH_TOKEN")
+
+    return {"message": "Вы успешно вышли"}

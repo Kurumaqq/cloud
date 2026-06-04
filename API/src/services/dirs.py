@@ -5,9 +5,9 @@ from src.utils.filesystem import (
     resolve_path,
     size_convert,
     unique_name,
-    copy_dir_thread,
 )
 from src.utils.validators import *
+from src.utils.auth import auto_refresh_access_token
 from src.config import Config
 from src.errors.dirs import *
 import platform
@@ -24,8 +24,8 @@ async def async_iterdir(path: Path):
         yield entry
 
 async def list_dirs(path: str, request: Request) -> ListDirsResponse:
-    src_dir = resolve_path(path)
     validate_path(path)
+    src_dir = resolve_path(path)
     validate_dir(src_dir)
 
     dirs = []
@@ -33,6 +33,7 @@ async def list_dirs(path: str, request: Request) -> ListDirsResponse:
         if i.is_dir():
             try:
                 await validate_user_dirs(request, i)
+                await validate_right(request, "READ", src_dir)
                 dirs.append({
                     "name": i.name,
                     "favourite": await check_favourite(i, "dir"),
@@ -42,7 +43,6 @@ async def list_dirs(path: str, request: Request) -> ListDirsResponse:
                 continue
 
     sorted_dirs = sorted(dirs, key=lambda x: (-x["favourite"], x["name"]))
-
     return ListDirsResponse(
         status="ok", dirs=sorted_dirs, message="Dirs listed successfully."
     )
@@ -73,6 +73,7 @@ async def create_dir(path: str, request: Request) -> CreateDirResponse:
     validate_path(path)
     src_dir = resolve_path(path)
     await validate_user_dirs(request, src_dir.parent)
+    await validate_right(request, "WRITE", src_dir.parent)
 
     src_dir = resolve_path(path)
     src_dir.mkdir(parents=True, exist_ok=False)
@@ -89,6 +90,7 @@ async def rename_dir(data: RenameDirRequest, request: Request) -> RenameDirRespo
     src_new_name = resolve_path(new_name).name
     src_dir = resolve_path(path)
     await validate_user_dirs(request, src_dir.parent)
+    await validate_right(request, "WRITE", src_dir.parent)
     old_name = src_dir.name
     dst_dir = src_dir.parent / src_new_name
     validate_dir(src_dir)
@@ -96,8 +98,7 @@ async def rename_dir(data: RenameDirRequest, request: Request) -> RenameDirRespo
     dst_dir.parent.mkdir(parents=True, exist_ok=True)
 
     await change_favourite(path, new_name, "dir")
-    # TODO: Thread 
-    shutil.move(src_dir, dst_dir)
+    await asyncio(shutil.move, src_dir, dst_dir)
     return RenameDirResponse(
         status="ok",
         old_name=old_name,
@@ -107,21 +108,21 @@ async def rename_dir(data: RenameDirRequest, request: Request) -> RenameDirRespo
 
 
 async def copy_dir(data: CopyDirRequest, request: Request) -> CopyDirResponse:
+    validate_paths([dir_path, copy_path])
     dir_path = data.dir_path
     copy_path = data.copy_path
 
-    validate_paths([dir_path, copy_path])
 
     src_dir = resolve_path(dir_path)
     await validate_user_dirs(request, src_dir.parent)
+    await validate_right(request, "WRITE", src_dir.parent)
     dst_dir = resolve_path(copy_path)
     validate_dir(src_dir)
 
     target_path = unique_name(dst_dir, src_dir.name, "dir")
     name = target_path.name
 
-    # TODO: Thread
-    await copy_dir_thread(src_dir, target_path)
+    await asyncio.to_thread(shutil.copytree, src_dir, dst_dir)
     return CopyDirResponse(
         status="ok",
         old_path=dir_path,
@@ -133,17 +134,16 @@ async def copy_dir(data: CopyDirRequest, request: Request) -> CopyDirResponse:
 
 async def delete_dir(path: str, request: Request) -> DeleteDirResponse:
     validate_path(path)
-
     src_dir = resolve_path(path)
-    await validate_user_dirs(request, src_dir.parent)
     validate_dir(src_dir)
+    await validate_user_dirs(request, src_dir.parent)
+    await validate_right(request, "DELETE", src_dir.parent)
 
     def remove_readonly(func, path, excinfo):
         os.chmod(path, stat.S_IWRITE)
         func(path)
 
-    # TODO: Thread
-    shutil.rmtree(src_dir, onerror=remove_readonly)
+    await asyncio.to_thread(shutil.rmtree, src_dir, onerror=remove_readonly)
     return DeleteDirResponse(
         status="ok",
         dir=src_dir.name,
@@ -152,9 +152,10 @@ async def delete_dir(path: str, request: Request) -> DeleteDirResponse:
 
 
 async def add_fav_dir(path: str, request: Request) -> AddFavouriteResponse:
+    validate_path(path)
     src_dir = resolve_path(path)
     await validate_user_dirs(request, src_dir.parent)
-    validate_path(path)
+    await validate_right(request, "UPDATE", src_dir.parent)
     validate_dir(src_dir)
 
     await add_favourite(path, "dir")
@@ -165,9 +166,10 @@ async def add_fav_dir(path: str, request: Request) -> AddFavouriteResponse:
     )
 
 async def remove_fav_dir(path: str, request: Request) -> DeleteFavouriteResponse:
+    validate_path(path)
     src_dir = resolve_path(path)
     await validate_user_dirs(request, src_dir.parent)
-    validate_path(path)
+    await validate_right(request, "UPDATE", src_dir.parent)
     validate_dir(src_dir)
 
     await remove_favourite(path, "dir")
